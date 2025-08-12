@@ -7,6 +7,9 @@
         <slot />
       </main>
     </div>
+    
+    <!-- Toast Container -->
+    <Toast />
   </div>
 </template>
 
@@ -14,6 +17,7 @@
 import { ref } from 'vue'
 import Sidebar from '@/components/Sidebar.vue'
 import HeaderBar from '@/components/HeaderBar.vue'
+import Toast from '@/components/Toast.vue'
 
 const sidebarOpen = ref(true)
 </script>

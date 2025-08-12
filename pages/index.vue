@@ -22,6 +22,7 @@
 import { computed } from 'vue'
 import StatCard from '@/components/StatCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
+import { useApi } from '@/services/api'
 
 const api = useApi()
 

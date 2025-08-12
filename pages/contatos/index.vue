@@ -42,6 +42,7 @@
 import { ref } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
+import { useApi } from '@/services/api'
 
 const api = useApi()
 

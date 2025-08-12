@@ -39,6 +39,7 @@
 import { computed, ref } from 'vue'
 import Tabs from '@/components/Tabs.vue'
 import DataTable from '@/components/DataTable.vue'
+import { useApi } from '@/services/api'
 
 const api = useApi()
 

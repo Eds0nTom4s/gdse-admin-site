@@ -21,8 +21,7 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
       "conteudo": "Conteúdo completo da notícia.",
       "imagemUrl": "https://example.com/imagem.jpg",
       "publicadoEm": "2025-07-06T01:55:47.123Z",
-      "nomeAutor": "nome do autor da noticia",
-      "resumo": "resumo gerado atravez do conteudo"
+      "autorId": 10
     }
   ]
   ```
@@ -37,25 +36,25 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 
 - **Método:** `POST`
 - **URL:** `/api/noticias`
-- **Corpo da Requisição:** `application/json` - `NoticiaRequestDTO`
-  ```json
-  {
-    "id": 1,
-    "titulo": "Título da Notícia",
-    "conteudo": "Conteúdo completo da notícia.",
-    "imagemUrl": "https://example.com/imagem.jpg",
-    "publicadoEm": "2025-07-06T01:55:47.123Z",
-    "nomeAutor": "nome do autor da noticia",
-    "resumo": "resumo gerado atravez do conteudo"
-  }
-  ```
+- **Corpo da Requisição:** `multipart/form-data`
+  - **part:** `noticia` (`application/json` - `NoticiaRequestDTO`)
+    ```json
+    {
+      "titulo": "Novo Título da Notícia (mínimo 10 caracteres)",
+      "conteudo": "Conteúdo da nova notícia.",
+      "autorId": 10
+    }
+    ```
+  - **part:** `imagem` (arquivo de imagem)
 - **Resposta (201 Created):** `application/json` - `NoticiaResponseDTO`
 
 ### 4. Atualizar notícia existente
 
 - **Método:** `PUT`
 - **URL:** `/api/noticias/{id}`
-- **Corpo da Requisição:** `application/json` - `NoticiaRequestDTO`
+- **Corpo da Requisição:** `multipart/form-data`
+  - **part:** `noticia` (`application/json` - `NoticiaRequestDTO`)
+  - **part:** `imagem` (arquivo de imagem, opcional)
 - **Resposta (200 OK):** `application/json` - `NoticiaResponseDTO`
 
 ### 5. Apagar notícia
@@ -104,25 +103,28 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 
 - **Método:** `POST`
 - **URL:** `/api/direcao/membros`
-- **Corpo da Requisição:** `application/json` - `MembroDirecaoRequestDTO`
-  ```json
-  {
-    "nome": "Novo Membro da Direção",
-    "fotoUrl": "https://example.com/nova-foto.jpg",
-    "biografia": "Biografia do novo membro.",
-    "cargoId": 2,
-    "inicioMandato": "2025-01-01",
-    "fimMandato": "2029-01-01",
-    "ativo": true
-  }
-  ```
+- **Corpo da Requisição:** `multipart/form-data`
+  - **part:** `membro` (`application/json` - `MembroDirecaoRequestDTO`)
+    ```json
+    {
+      "nome": "Novo Membro da Direção",
+      "biografia": "Biografia do novo membro.",
+      "cargoId": 2,
+      "inicioMandato": "2025-01-01",
+      "fimMandato": "2029-01-01",
+      "ativo": true
+    }
+    ```
+  - **part:** `foto` (arquivo de imagem)
 - **Resposta (201 Created):** `application/json` - `MembroDirecaoResponseDTO`
 
 ### 4. Atualizar membro da direção
 
 - **Método:** `PUT`
 - **URL:** `/api/direcao/membros/{id}`
-- **Corpo da Requisição:** `application/json` - `MembroDirecaoRequestDTO`
+- **Corpo da Requisição:** `multipart/form-data`
+  - **part:** `membro` (`application/json` - `MembroDirecaoRequestDTO`)
+  - **part:** `foto` (arquivo de imagem, opcional)
 - **Resposta (200 OK):** `application/json` - `MembroDirecaoResponseDTO`
 
 ### 5. Desativar membro da direção
@@ -221,24 +223,27 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 
 - **Método:** `POST`
 - **URL:** `/api/jogadores`
-- **Corpo da Requisição:** `application/json` - `JogadorRequestDTO`
-  ```json
-  {
-    "nome": "Novo Jogador",
-    "numero": 99,
-    "posicao": "Defesa",
-    "fotoUrl": "https://example.com/novo-jogador.jpg",
-    "grupoId": 1,
-    "ativo": true
-  }
-  ```
+- **Corpo da Requisição:** `multipart/form-data`
+  - **part:** `jogador` (`application/json` - `JogadorRequestDTO`)
+    ```json
+    {
+      "nome": "Novo Jogador",
+      "numero": 99,
+      "posicao": "Defesa",
+      "grupoId": 1,
+      "ativo": true
+    }
+    ```
+  - **part:** `foto` (arquivo de imagem)
 - **Resposta (201 Created):** `application/json` - `JogadorResponseDTO`
 
 ### 4. Atualizar jogador
 
 - **Método:** `PUT`
 - **URL:** `/api/jogadores/{id}`
-- **Corpo da Requisição:** `application/json` - `JogadorRequestDTO`
+- **Corpo da Requisição:** `multipart/form-data`
+  - **part:** `jogador` (`application/json` - `JogadorRequestDTO`)
+  - **part:** `foto` (arquivo de imagem, opcional)
 - **Resposta (200 OK):** `application/json` - `JogadorResponseDTO`
 
 ### 5. Apagar jogador
@@ -259,14 +264,14 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 - **URL:** `/api/grupos`
 - **Resposta (200 OK):** `application/json` - Array de `GrupoResponseDTO`
   ```json
-  [
+[
     {
       "id": 1,
-      "nome": "Séniores Masculino",
-      "modalidade": {
-        "id": 1,
-        "nome": "Futebol"
-      }
+      "titulo": "Título da Notícia",
+      "conteudo": "Conteúdo completo da notícia.",
+      "imagemUrl": "https://example.com/imagem.jpg",
+      "publicadoEm": "2025-07-06T01:55:47.123Z",
+      "nomeAutor": "Nome do Autor"
     }
   ]
   ```
@@ -749,225 +754,3 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 - **Método:** `DELETE`
 - **URL:** `/api/contatos/{id}`
 - **Resposta (204 No Content):** Sem corpo.
-
----
-
-## Módulo: Jogo / Jogos
-
-**Endpoint Base:** `/api/jogos`
-
-### 1. Listar todos os Jogos
-
-- **Método:** `GET`
-- **URL:** `/api/jogos`
-- **Descrição:** Retorna uma lista de todos os jogos.
-- **Resposta de Sucesso (200 OK):**
-  ```json
-  [
-    {
-      "id": 1,
-      "dataHora": "2024-07-20T15:30:00",
-      "local": "Estádio dos Coqueiros",
-      "adversario": "Petro de Luanda",
-      "logoAdversarioUrl": "http://localhost:8080/api/ficheiros/logos_adversarios/petro_logo.png",
-      "resultado": "2-1",
-      "emCasa": true,
-      "competicao": {
-        "id": 1,
-        "nome": "Girabola"
-      },
-      "grupo": {
-        "id": 1,
-        "nome": "Sénior Masculino",
-        "modalidade": {
-          "id": 1,
-          "nome": "Futebol"
-        }
-      },
-      "criadoEm": "2024-07-10T10:00:00"
-    }
-  ]
-  ```
-
-### 2. Buscar Jogo por ID
-
-- **Método:** `GET`
-- **URL:** `/api/jogos/{id}`
-- **Descrição:** Retorna um jogo específico pelo seu ID.
-- **Parâmetros de URL:**
-  - `id` (Long): ID do jogo.
-- **Resposta de Sucesso (200 OK):**
-  ```json
-  {
-    "id": 1,
-    "dataHora": "2024-07-20T15:30:00",
-    "local": "Estádio dos Coqueiros",
-    "adversario": "Petro de Luanda",
-    "logoAdversarioUrl": "http://localhost:8080/api/ficheiros/logos_adversarios/petro_logo.png",
-    "resultado": "2-1",
-    "emCasa": true,
-    "competicao": {
-      "id": 1,
-      "nome": "Girabola"
-    },
-    "grupo": {
-      "id": 1,
-      "nome": "Sénior Masculino",
-      "modalidade": {
-        "id": 1,
-        "nome": "Futebol"
-      }
-    },
-    "criadoEm": "2024-07-10T10:00:00"
-  }
-  ```
-
-### 3. Criar um novo Jogo
-
-- **Método:** `POST`
-- **URL:** `/api/jogos`
-- **Descrição:** Cria um novo jogo.
-- **Tipo de Conteúdo:** `multipart/form-data`
-- **Partes do Formulário:**
-  - `jogo` (JSON): Objeto com os detalhes do jogo.
-    ```json
-    {
-      "dataHora": "2024-08-01T18:00:00",
-      "local": "Estádio 11 de Novembro",
-      "adversario": "1º de Agosto",
-      "resultado": null,
-      "emCasa": false,
-      "competicaoId": 1,
-      "grupoId": 1
-    }
-    ```
-  - `logo` (File, opcional): Logo do time adversário.
-- **Resposta de Sucesso (201 Created):**
-  - Retorna o objeto do jogo criado, similar à resposta de "Buscar Jogo por ID".
-
-### 4. Atualizar um Jogo
-
-- **Método:** `PUT`
-- **URL:** `/api/jogos/{id}`
-- **Descrição:** Atualiza um jogo existente.
-- **Parâmetros de URL:**
-  - `id` (Long): ID do jogo a ser atualizado.
-- **Tipo de Conteúdo:** `multipart/form-data`
-- **Partes do Formulário:**
-  - `jogo` (JSON): Objeto com os detalhes do jogo a serem atualizados.
-  - `logo` (File, opcional): Novo logo do time adversário.
-- **Resposta de Sucesso (200 OK):**
-  - Retorna o objeto do jogo atualizado.
-
-### 5. Deletar um Jogo
-
-- **Método:** `DELETE`
-- **URL:** `/api/jogos/{id}`
-- **Descrição:** Deleta um jogo pelo seu ID.
-- **Parâmetros de URL:**
-  - `id` (Long): ID do jogo a ser deletado.
-- **Resposta de Sucesso (204 No Content):**
-  - Nenhuma resposta no corpo.
-
-### 6. Listar Jogos por Grupo
-
-- **Método:** `GET`
-- **URL:** `/api/jogos/por-grupo/{grupoId}`
-- **Descrição:** Retorna uma lista de jogos de um grupo específico.
-- **Parâmetros de URL:**
-  - `grupoId` (Long): ID do grupo.
-- **Resposta de Sucesso (200 OK):**
-  - Retorna uma lista de jogos, similar à resposta de "Listar todos os Jogos".
-
-### 7. Listar Jogos por Competição
-
-- **Método:** `GET`
-- **URL:** `/api/jogos/por-competicao/{competicaoId}`
-- **Descrição:** Retorna uma lista de jogos de uma competição específica.
-- **Parâmetros de URL:**
-  - `competicaoId` (Long): ID da competição.
-- **Resposta de Sucesso (200 OK):**
-  - Retorna uma lista de jogos, similar à resposta de "Listar todos os Jogos".
-
-### 8. Listar Próximos Jogos
-
-- **Método:** `GET`
-- **URL:** `/api/jogos/proximos`
-- **Descrição:** Retorna uma lista dos próximos jogos.
-- **Resposta de Sucesso (200 OK):**
-  ```json
-  [
-    {
-      "id": 2,
-      "dataHora": "2024-07-25T16:00:00",
-      "local": "Estádio da Cidadela",
-      "adversario": "Progresso do Sambizanga",
-      "logoAdversarioUrl": "http://localhost:8080/api/ficheiros/logos_adversarios/progresso_logo.png",
-      "emCasa": true,
-      "competicao": {
-        "id": 1,
-        "nome": "Girabola"
-      }
-    }
-  ]
-  ```
-
-## Estruturas de Dados (DTOs)
-
-### JogoRequestDTO
-
-```json
-{
-  "dataHora": "string (ISO-8601)",
-  "local": "string",
-  "adversario": "string",
-  "resultado": "string (opcional)",
-  "emCasa": "boolean",
-  "competicaoId": "long",
-  "grupoId": "long"
-}
-```
-
-### JogoResponseDTO
-
-```json
-{
-  "id": "long",
-  "dataHora": "string (ISO-8601)",
-  "local": "string",
-  "adversario": "string",
-  "logoAdversarioUrl": "string (URL)",
-  "resultado": "string",
-  "emCasa": "boolean",
-  "competicao": {
-    "id": "long",
-    "nome": "string"
-  },
-  "grupo": {
-    "id": "long",
-    "nome": "string",
-    "modalidade": {
-      "id": "long",
-      "nome": "string"
-    }
-  },
-  "criadoEm": "string (ISO-8601)"
-}
-```
-
-### ProximoJogoDTO
-
-```json
-{
-  "id": "long",
-  "dataHora": "string (ISO-8601)",
-  "local": "string",
-  "adversario": "string",
-  "logoAdversarioUrl": "string (URL)",
-  "emCasa": "boolean",
-  "competicao": {
-    "id": "long",
-    "nome": "string"
-  }
-}
-```

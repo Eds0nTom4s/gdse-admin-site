@@ -7,8 +7,9 @@
       <span class="text-base font-semibold text-gray-800">Sagrada Esperança</span>
     </div>
     <nav class="p-3 space-y-1">
-      <NuxtLink to="/" class="nav-item" exact-active-class="active">Dashboard</NuxtLink>
+      <NuxtLink to="/" class="nav-item" active-class="active" exact>Dashboard</NuxtLink>
       <NuxtLink to="/contatos" class="nav-item" active-class="active">Contatos</NuxtLink>
+      <NuxtLink to="/noticias" class="nav-item" active-class="active">Notícias</NuxtLink>
       <NuxtLink to="/jogos" class="nav-item" active-class="active">Jogos</NuxtLink>
       <NuxtLink to="/direcao/membros" class="nav-item" active-class="active">Membros da Direção</NuxtLink>
       <NuxtLink to="/configuracoes" class="nav-item" active-class="active">Configurações</NuxtLink>

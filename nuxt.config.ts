@@ -19,4 +19,11 @@ export default defineNuxtConfig({
       ]
     }
   },
+  // Configuração temporária para debugging
+  ssr: true,
+  nitro: {
+    experimental: {
+      wasm: false
+    }
+  }
 });
