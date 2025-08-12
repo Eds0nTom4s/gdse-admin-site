@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-green: #04aa5d;
+  --brand-yellow: #f9eb07;
+  --brand-mint: #ebfbf6;
+}
+
+html, body, #__nuxt {
+  height: 100%;
+}
