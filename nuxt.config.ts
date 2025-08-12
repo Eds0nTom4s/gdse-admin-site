@@ -6,6 +6,12 @@ export default defineNuxtConfig({
   css: [
     '@/assets/css/tailwind.css'
   ],
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {}
+    }
+  },
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
@@ -25,5 +31,9 @@ export default defineNuxtConfig({
     experimental: {
       wasm: false
     }
+  },
+  // Garantir auto-import de composables
+  imports: {
+    dirs: ['composables/**']
   }
 });

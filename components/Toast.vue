@@ -5,7 +5,7 @@
         v-for="toast in toasts"
         :key="toast.id"
         :class="[
-          'max-w-sm w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden',
+          'w-96 max-w-[90vw] shadow-lg rounded-lg pointer-events-auto overflow-hidden',
           getToastClasses(toast.type)
         ]"
       >
@@ -56,8 +56,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div class="ml-3 w-0 flex-1 pt-0.5">
-              <p class="text-sm font-medium">
+            <div class="ml-3 w-0 min-w-0 flex-1 pt-0.5">
+              <p class="text-sm font-medium break-words whitespace-normal leading-relaxed">
                 {{ toast.message }}
               </p>
             </div>
@@ -79,11 +79,30 @@
 </template>
 
 <script setup lang="ts">
-import type { Toast } from '@/composables/useToast'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { toastManager, type ToastMessage } from '@/utils/toast'
 
-const { toasts, removeToast } = useToast()
+const toasts = ref<ToastMessage[]>([])
+let unsubscribe: (() => void) | null = null
 
-function getToastClasses(type: Toast['type']) {
+onMounted(() => {
+  toasts.value = toastManager.getToasts()
+  unsubscribe = toastManager.subscribe((newToasts) => {
+    toasts.value = newToasts
+  })
+})
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
+
+function removeToast(id: string) {
+  toastManager.removeToast(id)
+}
+
+function getToastClasses(type: ToastMessage['type']) {
   const classes = {
     success: 'bg-green-50 border border-green-200 text-green-800',
     error: 'bg-red-50 border border-red-200 text-red-800',

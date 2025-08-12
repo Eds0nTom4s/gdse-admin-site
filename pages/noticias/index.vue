@@ -227,19 +227,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
 import { useApi } from '@/services/api'
+import { toastManager } from '@/utils/toast'
+import type { NoticiaResponseDTO, UsuarioResponseDTO } from '@/types'
 
 const api = useApi()
-const toast = useToast()
+const toast = toastManager
 
 // Estados principais
-const { data: noticias, refresh } = await useAsyncData('noticias:list', () => api.listNoticias())
+const noticias = ref<NoticiaResponseDTO[]>([])
+const usuarios = ref<UsuarioResponseDTO[]>([])
 
-// Buscar usuários do banco de dados
-const { data: usuarios } = await useAsyncData('usuarios:list', () => api.listUsuarios())
+// Função para carregar notícias
+async function carregarNoticias() {
+  try {
+    noticias.value = await api.listNoticias()
+  } catch (error) {
+    console.error('Erro ao carregar notícias:', error)
+    toast.error('Erro ao carregar notícias')
+  }
+}
+
+// Função para carregar usuários
+async function carregarUsuarios() {
+  try {
+    usuarios.value = await api.listUsuarios()
+  } catch (error) {
+    console.error('Erro ao carregar usuários:', error)
+    toast.error('Erro ao carregar usuários')
+  }
+}
+
+// Carregar dados na inicialização
+onMounted(async () => {
+  await Promise.all([carregarNoticias(), carregarUsuarios()])
+})
+
+// Função refresh para recarregar notícias
+const refresh = carregarNoticias
 
 // Computed para usar as notícias com autor já incluído
 const noticiasComAutor = computed(() => {
