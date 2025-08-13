@@ -203,6 +203,7 @@ export function createApiClient(baseURL: string) {
     listContatos: () => client('/api/contatos'),
     getContato: (id: number | string) => client(`/api/contatos/${id}`),
     marcarContatoComoLido: (id: number | string) => client(`/api/contatos/${id}`, { method: 'PATCH', body: { estado: 'LIDO' } }),
+    marcarContatoComoNaoLido: (id: number | string) => client(`/api/contatos/${id}`, { method: 'PATCH', body: { estado: 'NAO_LIDO' } }),
     apagarContato: (id: number | string) => client(`/api/contatos/${id}`, { method: 'DELETE' }),
 
     // Direção - Membros
