@@ -26,8 +26,9 @@
           <input v-model="form.nome" type="text" required class="mt-1 w-full px-3 py-2 border rounded" />
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm text-gray-700">Foto URL</label>
-          <input v-model="form.fotoUrl" type="url" class="mt-1 w-full px-3 py-2 border rounded" />
+          <label class="block text-sm text-gray-700">Foto</label>
+          <input ref="fotoInput" type="file" accept="image/*" @change="onFotoChange" class="mt-1 w-full px-3 py-2 border rounded" />
+          <p v-if="fotoSelecionada" class="text-xs text-gray-500 mt-1">{{ fotoSelecionada?.name }} ({{ (fotoSelecionada.size/1024/1024).toFixed(2) }} MB)</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm text-gray-700">Biografia</label>
@@ -76,8 +77,10 @@ import { reactive, ref, computed } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import Modal from '@/components/Modal.vue'
 import { useApi } from '@/services/api'
+import { toastManager } from '@/utils/toast'
 
 const api = useApi()
+const toast = toastManager
 
 const { data: membros, refresh } = await useAsyncData('direcao:membros', () => api.listMembrosDirecao())
 const { data: cargos } = await useAsyncData('direcao:cargos', () => api.listCargosDirecao())
@@ -86,6 +89,8 @@ const rows = computed(() => (membros.value || []).map((m: any) => ({ ...m, cargo
 
 const modalOpen = ref(false)
 const loading = ref(false)
+const fotoSelecionada = ref<File | null>(null)
+const fotoInput = ref<HTMLInputElement | null>(null)
 
 const form = reactive<any>({
   id: undefined,
@@ -101,6 +106,8 @@ const form = reactive<any>({
 function openCriar() {
   Object.assign(form, { id: undefined, nome: '', fotoUrl: '', biografia: '', cargoId: undefined, inicioMandato: '', fimMandato: '', ativo: true })
   modalOpen.value = true
+  fotoSelecionada.value = null
+  if (fotoInput.value) fotoInput.value.value = ''
 }
 
 function openEditar(row: any) {
@@ -115,6 +122,8 @@ function openEditar(row: any) {
     ativo: row.ativo
   })
   modalOpen.value = true
+  fotoSelecionada.value = null
+  if (fotoInput.value) fotoInput.value.value = ''
 }
 
 function closeModal() {
@@ -124,9 +133,8 @@ function closeModal() {
 async function salvar() {
   loading.value = true
   try {
-    const payload = {
+    const membroData = {
       nome: form.nome,
-      fotoUrl: form.fotoUrl,
       biografia: form.biografia,
       cargoId: form.cargoId,
       inicioMandato: form.inicioMandato,
@@ -134,12 +142,17 @@ async function salvar() {
       ativo: form.ativo
     }
     if (form.id) {
-      await api.atualizarMembroDirecao(form.id, payload)
+      await api.atualizarMembroDirecao(form.id, membroData, fotoSelecionada.value || undefined)
+      toast.success('Membro atualizado com sucesso!')
     } else {
-      await api.criarMembroDirecao(payload)
+      await api.criarMembroDirecao(membroData, fotoSelecionada.value || undefined)
+      toast.success('Membro criado com sucesso!')
     }
     await refresh()
     modalOpen.value = false
+  } catch (error) {
+    console.error('Erro ao salvar membro:', error)
+    toast.error('Erro ao salvar membro. Tente novamente.')
   } finally {
     loading.value = false
   }
@@ -152,9 +165,33 @@ async function remover() {
     await api.apagarMembroDirecao(form.id)
     await refresh()
     modalOpen.value = false
+    toast.success('Membro removido com sucesso!')
+  } catch (error) {
+    console.error('Erro ao remover membro:', error)
+    toast.error('Erro ao remover membro. Tente novamente.')
   } finally {
     loading.value = false
   }
+}
+
+function onFotoChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) { fotoSelecionada.value = null; return }
+  // validações básicas
+  if (file.size > 5 * 1024 * 1024) {
+    toast.warning('A imagem deve ter no máximo 5MB')
+    input.value = ''
+    fotoSelecionada.value = null
+    return
+  }
+  if (!file.type.startsWith('image/')) {
+    toast.warning('Apenas arquivos de imagem são permitidos')
+    input.value = ''
+    fotoSelecionada.value = null
+    return
+  }
+  fotoSelecionada.value = file
 }
 
 function formatDate(s?: string) {

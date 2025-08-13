@@ -208,8 +208,34 @@ export function createApiClient(baseURL: string) {
     // Direção - Membros
     listMembrosDirecao: () => client('/api/direcao/membros'),
     getMembroDirecao: (id: number | string) => client(`/api/direcao/membros/${id}`),
-    criarMembroDirecao: (payload: any) => client('/api/direcao/membros', { method: 'POST', body: payload }),
-    atualizarMembroDirecao: (id: number | string, payload: any) => client(`/api/direcao/membros/${id}`, { method: 'PUT', body: payload }),
+    criarMembroDirecao: async (membroData: any, foto?: File) => {
+      const formData = new FormData()
+      const membroBlob = new Blob([JSON.stringify(membroData)], { type: 'application/json' })
+      formData.append('membro', membroBlob, 'membro.json')
+      if (foto) formData.append('foto', foto, foto.name)
+
+      return client('/api/direcao/membros', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // sem Content-Type manual para deixar o boundary correto
+        }
+      })
+    },
+    atualizarMembroDirecao: async (id: number | string, membroData: any, foto?: File) => {
+      const formData = new FormData()
+      const membroBlob = new Blob([JSON.stringify(membroData)], { type: 'application/json' })
+      formData.append('membro', membroBlob, 'membro.json')
+      if (foto) formData.append('foto', foto, foto.name)
+
+      return client(`/api/direcao/membros/${id}`, {
+        method: 'PUT',
+        body: formData,
+        headers: {
+          // sem Content-Type manual para deixar o boundary correto
+        }
+      })
+    },
     apagarMembroDirecao: (id: number | string) => client(`/api/direcao/membros/${id}`, { method: 'DELETE' }),
 
     // Direção - Cargos
