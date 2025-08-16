@@ -12,6 +12,7 @@
       <NuxtLink to="/noticias" class="nav-item" active-class="active">Notícias</NuxtLink>
       <NuxtLink to="/jogos" class="nav-item" active-class="active">Jogos</NuxtLink>
       <NuxtLink to="/jogadores" class="nav-item" active-class="active">Jogadores</NuxtLink>
+      <NuxtLink to="/galeria" class="nav-item" active-class="active">Galeria</NuxtLink>
       <NuxtLink to="/direcao/membros" class="nav-item" active-class="active">Membros da Direção</NuxtLink>
       <NuxtLink to="/configuracoes" class="nav-item" active-class="active">Configurações</NuxtLink>
     </nav>

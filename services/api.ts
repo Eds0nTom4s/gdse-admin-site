@@ -1,6 +1,7 @@
 import { ofetch } from 'ofetch'
 import type { ClubeRequestDTO } from '@/types'
 import type { JogadorRequestDTO } from '@/types/jogador'
+import type { AlbumRequestDTO, MidiaRequestDTO } from '@/types/galeria'
 
 // Dados mock para demonstração (estrutura atualizada para corresponder à API real)
 const mockNoticias = [
@@ -328,6 +329,15 @@ export function createApiClient(baseURL: string) {
     criarModalidade: (payload: any) => client('/api/modalidades', { method: 'POST', body: payload }),
     atualizarModalidade: (id: number | string, payload: any) => client(`/api/modalidades/${id}`, { method: 'PUT', body: payload }),
     apagarModalidade: (id: number | string) => client(`/api/modalidades/${id}`, { method: 'DELETE' }),
+
+    // Galeria
+    listAlbuns: () => client('/api/galeria/albuns'),
+    getAlbum: (id: number | string) => client(`/api/galeria/albuns/${id}`),
+    criarAlbum: (payload: AlbumRequestDTO) => client('/api/galeria/albuns', { method: 'POST', body: payload }),
+    atualizarAlbum: (id: number | string, payload: AlbumRequestDTO) => client(`/api/galeria/albuns/${id}`, { method: 'PUT', body: payload }),
+    apagarAlbum: (id: number | string) => client(`/api/galeria/albuns/${id}`, { method: 'DELETE' }),
+    adicionarMidia: (albumId: number | string, payload: MidiaRequestDTO) => client(`/api/galeria/albuns/${albumId}/midias`, { method: 'POST', body: payload }),
+    apagarMidia: (midiaId: number | string) => client(`/api/galeria/midias/${midiaId}`, { method: 'DELETE' }),
   }
 }
 

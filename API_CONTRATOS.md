@@ -453,6 +453,7 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
   ```
   - **Valores possíveis para `tipo`:** `JOGO`, `TREINO`, `EVENTO`, `OUTRO`
   - **Valores possíveis para `midias.tipo`:** `IMAGEM`, `VIDEO`
+  - **Ordenação:** mais recentes primeiro (campo `publicadoEm` em ordem decrescente).
 
 ### 2. Obter álbum por ID
 
@@ -480,6 +481,7 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
   }
   ```
 - **Resposta (201 Created):** `application/json` - `AlbumResponseDTO`
+  - **Observação:** o campo `midias` é opcional; se ausente ou vazio, o álbum é criado sem mídias.
 
 ### 4. Atualizar álbum
 
@@ -487,6 +489,7 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 - **URL:** `/api/galeria/albuns/{id}`
 - **Corpo da Requisição:** `application/json` - `AlbumRequestDTO`
 - **Resposta (200 OK):** `application/json` - `AlbumResponseDTO`
+  - **Observação:** este endpoint atualiza apenas metadados (`titulo`, `descricao`, `tipo`). A gestão de mídias (adicionar/remover) é feita pelos endpoints dedicados abaixo.
 
 ### 5. Apagar álbum
 
@@ -506,7 +509,15 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
     "legenda": "Nova foto adicionada"
   }
   ```
-- **Resposta (201 Created):** `application/json` - Entidade `Midia`
+- **Resposta (201 Created):** `application/json` - Objeto `Midia` criado
+  ```json
+  {
+    "id": 10,
+    "tipo": "IMAGEM",
+    "url": "https://example.com/nova-midia.jpg",
+    "legenda": "Nova foto adicionada"
+  }
+  ```
 
 ### 7. Apagar mídia
 
@@ -631,6 +642,18 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 - **Método:** `POST`
 - **URL:** `/api/jogos`
 - **Corpo da Requisição:** `application/json` - `JogoRequestDTO`
+  ```json
+  {
+    "dataHora": "2025-08-01T19:00:00",
+    "local": "Estádio Nacional",
+    "adversario": "FC Exemplo",
+    "logotipoAdversario": "https://example.com/logo.png",
+    "resultado": "2-1",
+    "emCasa": true,
+    "competicaoId": 1,
+    "grupoId": 1
+  }
+  ```
 - **Resposta (201 Created):** `application/json` - `JogoResponseDTO`
 
 ### 6. Atualizar jogo
@@ -706,6 +729,66 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 - **URL:** `/api/sobre`
 - **Corpo da Requisição:** `application/json` - `SobreDTO`
 - **Resposta (200 OK):** `application/json` - `SobreDTO` (com os dados atualizados)
+
+---
+
+## Módulo: Clube (Singleton)
+
+**Endpoint Base:** `/api/clube`
+
+### 1. Obter dados institucionais do clube
+
+- **Método:** `GET`
+- **URL:** `/api/clube`
+- **Resposta (200 OK):** `application/json` - `ClubeResponseDTO`
+  ```json
+  {
+    "id": 1,
+    "nomeCompleto": "Grupo Desportivo Sagrada Esperança",
+    "sigla": "GDSE",
+    "slogan": "TIme de sucesso!",
+    "descricao": "Descrição de exemplo",
+    "fundacao": "1976-12-22",
+    "estadio": "Estádio Sagrada Esperança",
+    "sede": {
+      "logradouro": "Estádio Sagrada Esperança",
+      "numero": null,
+      "complemento": null,
+      "bairro": null,
+      "cidade": "Dundo",
+      "estado": "Lunda Norte",
+      "pais": "Angola",
+      "cep": "0000"
+    }
+  }
+  ```
+
+### 2. Atualizar dados institucionais do clube (upsert)
+
+- **Método:** `PUT`
+- **URL:** `/api/clube`
+- **Corpo da Requisição:** `application/json` - `ClubeRequestDTO`
+  ```json
+  {
+    "nomeCompleto": "Grupo Desportivo Sagrada Esperança",
+    "sigla": "GDSE",
+    "slogan": "TIme de sucesso!",
+    "descricao": "Descrição de exemplo",
+    "fundacao": "1976-12-22",
+    "estadio": "Estádio Sagrada Esperança",
+    "sede": {
+      "logradouro": "Estádio Sagrada Esperança",
+      "numero": null,
+      "complemento": null,
+      "bairro": null,
+      "cidade": "Dundo",
+      "estado": "Lunda Norte",
+      "pais": "Angola",
+      "cep": "0000"
+    }
+  }
+  ```
+- **Resposta (200 OK):** `application/json` - `ClubeResponseDTO` (dados atualizados)
 
 ## Módulo: Contatos
 
