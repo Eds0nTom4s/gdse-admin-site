@@ -1,4 +1,5 @@
 import { ofetch } from 'ofetch'
+import type { ClubeRequestDTO } from '@/types'
 
 // Dados mock para demonstração (estrutura atualizada para corresponder à API real)
 const mockNoticias = [
@@ -242,15 +243,17 @@ export function createApiClient(baseURL: string) {
     // Direção - Cargos
     listCargosDirecao: () => client('/api/direcao/cargos'),
 
-    // Jogos
+    // Jogos (JSON conforme contrato)
     listJogos: () => client('/api/jogos'),
     getJogo: (id: number | string) => client(`/api/jogos/${id}`),
     listJogosPorGrupo: (grupoId: number | string) => client(`/api/jogos/por-grupo/${grupoId}`),
     listJogosPorCompeticao: (competicaoId: number | string) => client(`/api/jogos/por-competicao/${competicaoId}`),
-    criarJogo: (formData: FormData) => client('/api/jogos', { method: 'POST', body: formData }),
-    atualizarJogo: (id: number | string, formData: FormData) => client(`/api/jogos/${id}`, { method: 'PUT', body: formData }),
+    criarJogo: (payload: any) => client('/api/jogos', { method: 'POST', body: payload }),
+    atualizarJogo: (id: number | string, payload: any) => client(`/api/jogos/${id}`, { method: 'PUT', body: payload }),
     apagarJogo: (id: number | string) => client(`/api/jogos/${id}`, { method: 'DELETE' }),
     listProximosJogos: () => client('/api/jogos/proximos'),
+    // Competições (para seleção no formulário de jogos)
+    listCompeticoes: () => client('/api/competicoes'),
 
     // Classificações
     listClassificacoes: () => client('/api/classificacoes'),
@@ -267,6 +270,22 @@ export function createApiClient(baseURL: string) {
     criarUsuario: (payload: any) => client('/api/usuarios', { method: 'POST', body: payload }),
     atualizarUsuario: (id: number | string, payload: any) => client(`/api/usuarios/${id}`, { method: 'PUT', body: payload }),
     apagarUsuario: (id: number | string) => client(`/api/usuarios/${id}`, { method: 'DELETE' }),
+
+    // Clube
+    getClube: () => client('/api/clube'),
+    atualizarClube: (payload: ClubeRequestDTO) => client('/api/clube', { method: 'PUT', body: payload }),
+    atualizarLogoClube: async (nomeCompleto: string, estadio: string, logo: File) => {
+      const formData = new FormData()
+      const clubeBlob = new Blob([JSON.stringify({ nomeCompleto, estadio })], { type: 'application/json' })
+      formData.append('clube', clubeBlob, 'clube.json')
+      formData.append('logo', logo)
+
+      return client('/api/clube/logo', {
+        method: 'PUT',
+        body: formData
+      })
+    },
+    getLogoMetadata: () => client('/api/clube/logo'),
   }
 }
 

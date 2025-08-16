@@ -1,21 +1,20 @@
-export interface NoticiaResponseDTO {
-  id: number
-  titulo: string
-  conteudo: string
-  imagemUrl?: string
-  publicadoEm: string
-  nomeAutor: string
-  resumo: string
+export interface Sede {
+  cidade: string;
+  provincia: string;
+  pais: string;
+  bairro: string | null;
 }
 
-export interface UsuarioResponseDTO {
-  id: number
-  nome: string
-  email: string
-  tipo: string
+export interface ClubeDTO {
+  id?: number;
+  nomeCompleto: string;
+  sigla: string;
+  slogan: string;
+  logoUrl: string;
+  fundacao: string;
+  estadio: string;
+  sede: Sede;
 }
 
-// Reexportar também por conveniência
-export type { NoticiaResponseDTO as NoticiaDTO, UsuarioResponseDTO as UsuarioDTO }
-
-
+export type ClubeRequestDTO = Omit<ClubeDTO, 'id'>;
+export type ClubeResponseDTO = Required<ClubeDTO>;
