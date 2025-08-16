@@ -1,5 +1,6 @@
 import { ofetch } from 'ofetch'
 import type { ClubeRequestDTO } from '@/types'
+import type { JogadorRequestDTO } from '@/types/jogador'
 
 // Dados mock para demonstração (estrutura atualizada para corresponder à API real)
 const mockNoticias = [
@@ -286,6 +287,47 @@ export function createApiClient(baseURL: string) {
       })
     },
     getLogoMetadata: () => client('/api/clube/logo'),
+
+    // Jogadores
+    listJogadores: () => client('/api/jogadores'),
+    getJogador: (id: number | string) => client(`/api/jogadores/${id}`),
+    criarJogador: async (jogador: JogadorRequestDTO, foto: File) => {
+      const formData = new FormData()
+      const jogadorBlob = new Blob([JSON.stringify(jogador)], { type: 'application/json' })
+      formData.append('jogador', jogadorBlob, 'jogador.json')
+      formData.append('foto', foto)
+
+      return client('/api/jogadores', {
+        method: 'POST',
+        body: formData
+      })
+    },
+    atualizarJogador: async (id: number | string, jogador: JogadorRequestDTO, foto?: File) => {
+      const formData = new FormData()
+      const jogadorBlob = new Blob([JSON.stringify(jogador)], { type: 'application/json' })
+      formData.append('jogador', jogadorBlob, 'jogador.json')
+      if (foto) formData.append('foto', foto)
+
+      return client(`/api/jogadores/${id}`, {
+        method: 'PUT',
+        body: formData
+      })
+    },
+    apagarJogador: (id: number | string) => client(`/api/jogadores/${id}`, { method: 'DELETE' }),
+
+    // Grupos
+    listGrupos: () => client('/api/grupos'),
+    getGrupo: (id: number | string) => client(`/api/grupos/${id}`),
+    criarGrupo: (payload: any) => client('/api/grupos', { method: 'POST', body: payload }),
+    atualizarGrupo: (id: number | string, payload: any) => client(`/api/grupos/${id}`, { method: 'PUT', body: payload }),
+    apagarGrupo: (id: number | string) => client(`/api/grupos/${id}`, { method: 'DELETE' }),
+
+    // Modalidades
+    listModalidades: () => client('/api/modalidades'),
+    getModalidade: (id: number | string) => client(`/api/modalidades/${id}`),
+    criarModalidade: (payload: any) => client('/api/modalidades', { method: 'POST', body: payload }),
+    atualizarModalidade: (id: number | string, payload: any) => client(`/api/modalidades/${id}`, { method: 'PUT', body: payload }),
+    apagarModalidade: (id: number | string) => client(`/api/modalidades/${id}`, { method: 'DELETE' }),
   }
 }
 
