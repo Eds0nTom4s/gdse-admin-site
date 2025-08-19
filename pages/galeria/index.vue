@@ -11,9 +11,12 @@ const api = useApi()
 // Estado
 const albumModalOpen = ref(false)
 const midiaModalOpen = ref(false)
+const confirmDeleteModalOpen = ref(false)
 const loadingAlbum = ref(false)
 const loadingMidia = ref(false)
+const loadingDelete = ref(false)
 const selectedAlbumId = ref<number | null>(null)
+const midiaToDelete = ref<{ id: number, albumId: number, tipo: MidiaTipo, legenda: string, url: string } | null>(null)
 
 // Dados
 const { data: albuns, refresh: refreshAlbuns } = await useAsyncData('albuns', () => api.listAlbuns())
@@ -37,6 +40,43 @@ const tiposAlbum: AlbumTipo[] = ['JOGO', 'TREINO', 'EVENTO', 'OUTRO']
 const tiposMidia: MidiaTipo[] = ['IMAGEM', 'VIDEO']
 
 // Funções
+const uploadFile = ref<File | null>(null)
+const uploadPreview = ref<string | null>(null)
+const uploadingFile = ref(false)
+
+async function onMidiaFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
+  const file = input.files[0]
+  uploadFile.value = file
+
+  // Preview apenas para imagens
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader()
+    reader.onload = e => {
+      uploadPreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  } else {
+    uploadPreview.value = null
+  }
+
+  uploadingFile.value = true
+  try {
+    const resp: any = await api.uploadMidiaGaleria(file)
+    if (resp?.url) {
+      midiaForm.url = resp.url
+      toastManager.success('Upload concluído! URL preenchida automaticamente.')
+    } else {
+      toastManager.error('Resposta de upload inesperada. Tente novamente.')
+    }
+  } catch (error) {
+    console.error('Erro no upload da mídia:', error)
+    toastManager.error('Erro ao fazer upload do ficheiro. Tente novamente.')
+  } finally {
+    uploadingFile.value = false
+  }
+}
 function openCriarAlbum() {
   selectedAlbumId.value = null
   Object.assign(albumForm, {
@@ -134,17 +174,39 @@ async function apagarAlbum(id: number) {
   }
 }
 
-async function apagarMidia(midiaId: number) {
-  if (!confirm('Tem certeza que deseja remover esta mídia?')) return
+function confirmarApagarMidia(midia: { id: number, tipo: MidiaTipo, legenda: string, url: string }, albumId: number) {
+  midiaToDelete.value = { ...midia, albumId }
+  confirmDeleteModalOpen.value = true
+}
 
+async function apagarMidia() {
+  if (!midiaToDelete.value) return
+
+  loadingDelete.value = true
   try {
-    await api.apagarMidia(midiaId)
+    await api.apagarMidia(midiaToDelete.value.id)
     toastManager.success('Mídia removida com sucesso!')
-    await refreshAlbuns()
+    
+    // Atualizar apenas o álbum específico
+    const album = await api.getAlbum(midiaToDelete.value.albumId)
+    const index = albuns.value?.findIndex((a: AlbumResponseDTO) => a.id === midiaToDelete.value?.albumId)
+    if (index !== undefined && index >= 0 && albuns.value) {
+      albuns.value[index] = album
+    }
+    
+    confirmDeleteModalOpen.value = false
+    midiaToDelete.value = null
   } catch (error) {
     console.error('Erro ao remover mídia:', error)
     toastManager.error('Erro ao remover mídia. Tente novamente.')
+  } finally {
+    loadingDelete.value = false
   }
+}
+
+function cancelarApagarMidia() {
+  confirmDeleteModalOpen.value = false
+  midiaToDelete.value = null
 }
 
 function formatarData(data: string) {
@@ -241,7 +303,7 @@ function formatarData(data: string) {
               <!-- Ações -->
               <button
                 class="p-1 text-red-600 hover:text-red-800"
-                @click="apagarMidia(midia.id)"
+                @click="confirmarApagarMidia(midia, album.id)"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -330,6 +392,36 @@ function formatarData(data: string) {
       <form class="space-y-4" @submit.prevent="salvarMidia">
         <div class="space-y-2">
           <label class="block text-sm font-medium text-gray-700">
+            Upload do ficheiro (opcional)
+          </label>
+          <div class="flex items-start gap-3">
+            <div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+              <template v-if="uploadPreview && midiaForm.tipo === 'IMAGEM'">
+                <img :src="uploadPreview" alt="preview" class="w-full h-full object-cover" />
+              </template>
+              <svg v-else class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <label class="inline-block px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 cursor-pointer">
+                <span class="text-sm text-gray-700">Selecionar ficheiro</span>
+                <input type="file" class="hidden" accept="image/*,video/*" @change="onMidiaFileChange" />
+              </label>
+              <div class="mt-1 text-sm text-gray-600 truncate" v-if="uploadFile">{{ uploadFile.name }}</div>
+              <div class="mt-2 text-xs text-gray-500">Após o upload, a URL será preenchida automaticamente.</div>
+              <div v-if="uploadingFile" class="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                <svg class="animate-spin h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Enviando ficheiro...
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">
             Tipo
           </label>
           <select
@@ -352,6 +444,7 @@ function formatarData(data: string) {
             type="url"
             required
             class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-[var(--brand-green)]"
+            :disabled="uploadingFile"
           />
         </div>
 
@@ -380,10 +473,66 @@ function formatarData(data: string) {
           <button
             type="button"
             class="px-4 py-2 text-white bg-[var(--brand-green)] rounded hover:bg-opacity-90"
-            :disabled="loadingMidia"
+            :disabled="loadingMidia || uploadingFile"
             @click="salvarMidia"
           >
             {{ loadingMidia ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <Modal 
+      :open="confirmDeleteModalOpen"
+      title="Confirmar Exclusão"
+      @close="cancelarApagarMidia"
+    >
+      <div v-if="midiaToDelete" class="space-y-4">
+        <p class="text-gray-700">
+          Tem certeza que deseja remover esta mídia?
+        </p>
+        
+        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded">
+          <!-- Preview -->
+          <div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+            <template v-if="midiaToDelete.tipo === 'IMAGEM'">
+              <img :src="midiaToDelete.url" :alt="midiaToDelete.legenda" class="w-full h-full object-cover" />
+            </template>
+            <svg v-else class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-gray-900">{{ midiaToDelete.legenda }}</p>
+            <p class="text-xs text-gray-500">{{ midiaToDelete.tipo }}</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-gray-500">
+          Esta ação não pode ser desfeita.
+        </p>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            class="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+            @click="cancelarApagarMidia"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
+            :disabled="loadingDelete"
+            @click="apagarMidia"
+          >
+            {{ loadingDelete ? 'Removendo...' : 'Remover' }}
           </button>
         </div>
       </template>

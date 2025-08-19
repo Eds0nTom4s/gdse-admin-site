@@ -84,14 +84,7 @@ export function createApiClient(baseURL: string) {
         formData.append('imagem', imagem, imagem.name)
       }
       
-      // Debug: verificar conteúdo do FormData
-      console.log('FormData entries:')
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value)
-        if (value instanceof File || value instanceof Blob) {
-          console.log(`${key} - tipo: ${value.type}, tamanho: ${value.size}`)
-        }
-      }
+      // Removido logs de debug para evitar instanceof em ambiente SSR
       
       // Tentar uma abordagem completamente diferente - usar ofetch com configuração específica
       const config = useRuntimeConfig()
@@ -153,14 +146,7 @@ export function createApiClient(baseURL: string) {
         formData.append('imagem', imagem, imagem.name)
       }
       
-      // Debug: verificar conteúdo do FormData
-      console.log('FormData entries:')
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value)
-        if (value instanceof File || value instanceof Blob) {
-          console.log(`${key} - tipo: ${value.type}, tamanho: ${value.size}`)
-        }
-      }
+      // Removido logs de debug para evitar instanceof em ambiente SSR
       
       // Usar fetch nativo para multipart/form-data
       const config = useRuntimeConfig()
@@ -337,7 +323,15 @@ export function createApiClient(baseURL: string) {
     atualizarAlbum: (id: number | string, payload: AlbumRequestDTO) => client(`/api/galeria/albuns/${id}`, { method: 'PUT', body: payload }),
     apagarAlbum: (id: number | string) => client(`/api/galeria/albuns/${id}`, { method: 'DELETE' }),
     adicionarMidia: (albumId: number | string, payload: MidiaRequestDTO) => client(`/api/galeria/albuns/${albumId}/midias`, { method: 'POST', body: payload }),
-    apagarMidia: (midiaId: number | string) => client(`/api/galeria/midias/${midiaId}`, { method: 'DELETE' }),
+    apagarMidia: (midiaId: number | string) => client(`/api/galeria/albuns/midias/${midiaId}`, { method: 'DELETE' }),
+    uploadMidiaGaleria: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return client('/api/ficheiros/galeria', {
+        method: 'POST',
+        body: formData
+      })
+    },
   }
 }
 
