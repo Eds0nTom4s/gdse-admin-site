@@ -332,6 +332,16 @@ export function createApiClient(baseURL: string) {
         body: formData
       })
     },
+    uploadMultiplasMidiasGaleria: async (files: File[]) => {
+      const formData = new FormData()
+      for (const file of files) {
+        formData.append('files', file)
+      }
+      return client('/api/ficheiros/galeria/multi', {
+        method: 'POST',
+        body: formData
+      })
+    },
   }
 }
 

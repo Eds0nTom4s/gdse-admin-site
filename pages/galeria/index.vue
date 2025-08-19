@@ -41,16 +41,93 @@ const tiposMidia: MidiaTipo[] = ['IMAGEM', 'VIDEO']
 
 // Funções
 const uploadFile = ref<File | null>(null)
+const uploadFiles = ref<File[]>([])
 const uploadPreview = ref<string | null>(null)
+const uploadPreviewsMulti = ref<string[]>([])
 const uploadingFile = ref(false)
+const isDragOver = ref(false)
 
 async function onMidiaFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   if (!input.files?.length) return
-  const file = input.files[0]
-  uploadFile.value = file
+  // Selecção múltipla suportada
+  const files = Array.from(input.files)
+  await handleFilesUpload(files)
+}
 
-  // Preview apenas para imagens
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+  isDragOver.value = true
+}
+
+function onDragLeave(e: DragEvent) {
+  e.preventDefault()
+  isDragOver.value = false
+}
+
+async function onDrop(e: DragEvent) {
+  e.preventDefault()
+  isDragOver.value = false
+  const files = Array.from(e.dataTransfer?.files || [])
+  await handleFilesUpload(files)
+}
+
+async function handleFilesUpload(files: File[]) {
+  if (!files.length) return
+  // Validar tipo do grupo (tudo imagem ou tudo vídeo)
+  const isAllImages = files.every(f => f.type.startsWith('image/'))
+  const isAllVideos = files.every(f => f.type.startsWith('video/'))
+  if (!(isAllImages || isAllVideos)) {
+    toastManager.error('Selecione apenas imagens ou apenas vídeos por envio.')
+    return
+  }
+
+  // Se múltiplos
+  if (files.length > 1) {
+    uploadingFile.value = true
+    try {
+      const resp: any = await api.uploadMultiplasMidiasGaleria(files)
+      if (Array.isArray(resp)) {
+        // Resp: lista de { nomeFicheiro, url }
+        // Escolher tipo automaticamente
+        midiaForm.tipo = isAllImages ? 'IMAGEM' : 'VIDEO'
+        uploadFiles.value = files
+        uploadPreviewsMulti.value = []
+        if (isAllImages) {
+          for (const f of files) {
+            const reader = new FileReader()
+            reader.onload = e => {
+              uploadPreviewsMulti.value.push(e.target?.result as string)
+            }
+            reader.readAsDataURL(f)
+          }
+        }
+        // Como o contrato de adicionar mídia é 1 a 1, sugerimos adicionar em sequência
+        for (const item of resp) {
+          await api.adicionarMidia(selectedAlbumId.value as number, {
+            tipo: midiaForm.tipo,
+            url: item.url,
+            legenda: midiaForm.legenda || 'Sem legenda'
+          })
+        }
+        toastManager.success('Ficheiros enviados e mídias registadas com sucesso!')
+        await refreshAlbuns()
+        closeMidiaModal()
+      } else {
+        toastManager.error('Resposta de upload múltiplo inesperada.')
+      }
+    } catch (error: any) {
+      console.error('Erro no upload múltiplo:', error)
+      toastManager.error(error?.data?.message || 'Erro no upload múltiplo. Tente novamente.')
+    } finally {
+      uploadingFile.value = false
+    }
+    return
+  }
+
+  // Upload simples (um ficheiro)
+  const file = files[0]
+  uploadFile.value = file
   if (file.type.startsWith('image/')) {
     const reader = new FileReader()
     reader.onload = e => {
@@ -60,12 +137,12 @@ async function onMidiaFileChange(event: Event) {
   } else {
     uploadPreview.value = null
   }
-
   uploadingFile.value = true
   try {
     const resp: any = await api.uploadMidiaGaleria(file)
     if (resp?.url) {
       midiaForm.url = resp.url
+      midiaForm.tipo = file.type.startsWith('image/') ? 'IMAGEM' : 'VIDEO'
       toastManager.success('Upload concluído! URL preenchida automaticamente.')
     } else {
       toastManager.error('Resposta de upload inesperada. Tente novamente.')
@@ -394,7 +471,9 @@ function formatarData(data: string) {
           <label class="block text-sm font-medium text-gray-700">
             Upload do ficheiro (opcional)
           </label>
-          <div class="flex items-start gap-3">
+          <div 
+            class="flex items-start gap-3"
+          >
             <div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
               <template v-if="uploadPreview && midiaForm.tipo === 'IMAGEM'">
                 <img :src="uploadPreview" alt="preview" class="w-full h-full object-cover" />
@@ -406,9 +485,19 @@ function formatarData(data: string) {
             <div class="flex-1">
               <label class="inline-block px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 cursor-pointer">
                 <span class="text-sm text-gray-700">Selecionar ficheiro</span>
-                <input type="file" class="hidden" accept="image/*,video/*" @change="onMidiaFileChange" />
+                <input type="file" class="hidden" accept="image/*,video/*" multiple @change="onMidiaFileChange" />
               </label>
-              <div class="mt-1 text-sm text-gray-600 truncate" v-if="uploadFile">{{ uploadFile.name }}</div>
+              <div 
+                class="mt-2 border-2 border-dashed rounded p-4"
+                :class="isDragOver ? 'border-[var(--brand-green)] bg-[color:var(--brand-mint)]/30' : 'border-gray-300'"
+                @dragover.prevent="onDragOver"
+                @dragleave.prevent="onDragLeave"
+                @drop.prevent="onDrop"
+              >
+                <p class="text-sm text-gray-600">Arraste e solte ficheiros aqui ou clique para selecionar.</p>
+              </div>
+              <div class="mt-1 text-sm text-gray-600 truncate" v-if="uploadFiles.length">{{ uploadFiles.length }} ficheiro(s) selecionado(s)</div>
+              <div class="mt-1 text-sm text-gray-600 truncate" v-else-if="uploadFile">{{ uploadFile.name }}</div>
               <div class="mt-2 text-xs text-gray-500">Após o upload, a URL será preenchida automaticamente.</div>
               <div v-if="uploadingFile" class="mt-2 flex items-center gap-2 text-sm text-gray-600">
                 <svg class="animate-spin h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
