@@ -12,8 +12,14 @@ const api = useApi()
 // Estado
 const jogadorModalOpen = ref(false)
 const loadingJogador = ref(false)
-const fotoFile = ref<File | null>(null)
+// Capa via Galeria
+const fotoFile = ref<File | null>(null) // deprecado
 const fotoPreview = ref<string | null>(null)
+const capaMidiaId = ref<number | null>(null)
+const modalGaleriaAberto = ref(false)
+const albunsGaleria = ref<any[] | null>(null)
+const carregandoGaleria = ref(false)
+const erroGaleria = ref<string | null>(null)
 
 // Dados
 const { data: jogadores, refresh: refreshJogadores } = await useAsyncData('jogadores', () => api.listJogadores())
@@ -44,7 +50,7 @@ function openCriarJogador() {
     grupoId: 0,
     ativo: true
   })
-  fotoFile.value = null
+  capaMidiaId.value = null
   fotoPreview.value = null
   jogadorModalOpen.value = true
 }
@@ -61,8 +67,8 @@ function openEditarJogador(jogador: JogadorResponseDTO) {
     ativo: jogador.ativo,
     fotoUrl: fotoUrl // Apenas o nome do arquivo
   })
-  fotoFile.value = null
-  fotoPreview.value = null
+  capaMidiaId.value = null
+  fotoPreview.value = jogador.fotoUrl
   jogadorModalOpen.value = true
 }
 
@@ -70,49 +76,41 @@ function closeJogadorModal() {
   jogadorModalOpen.value = false
 }
 
-function onFotoChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  if (input.files?.length) {
-    const file = input.files[0]
-    
-    // Validar tamanho do arquivo (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toastManager.error('A foto deve ter no máximo 5MB')
-      input.value = '' // Limpar input
-      return
-    }
-    
-    // Validar tipo do arquivo
-    if (!file.type.startsWith('image/')) {
-      toastManager.error('O arquivo selecionado não é uma imagem válida')
-      input.value = '' // Limpar input
-      return
-    }
-    
-    fotoFile.value = file
-    
-    // Criar preview da imagem
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      fotoPreview.value = e.target?.result as string
-    }
-    reader.onerror = () => {
-      toastManager.error('Erro ao carregar a prévia da imagem')
-      fotoFile.value = null
-      fotoPreview.value = null
-    }
-    reader.readAsDataURL(file)
+async function abrirModalGaleria() {
+  modalGaleriaAberto.value = true
+  if (albunsGaleria.value) return
+  carregandoGaleria.value = true
+  erroGaleria.value = null
+  try {
+    const albuns = await api.listAlbuns()
+    albunsGaleria.value = (albuns || []).map((a: any) => ({
+      ...a,
+      midias: (a.midias || []).filter((m: any) => m.tipo === 'IMAGEM')
+    }))
+  } catch (e: any) {
+    erroGaleria.value = 'Erro ao carregar álbuns. Tente novamente.'
+  } finally {
+    carregandoGaleria.value = false
   }
 }
 
-function removerFotoSelecionada() {
-  fotoFile.value = null
-  if (jogadorId.value) {
-    const jogador = jogadores.value?.find(j => j.id === jogadorId.value)
-    fotoPreview.value = jogador?.fotoUrl || null
-  } else {
-    fotoPreview.value = null
+function fecharModalGaleria() {
+  modalGaleriaAberto.value = false
+}
+
+function selecionarCapa(midia: any) {
+  if (midia.tipo !== 'IMAGEM') {
+    toastManager.error('Selecione uma imagem válida')
+    return
   }
+  capaMidiaId.value = midia.id
+  fotoPreview.value = midia.url
+  modalGaleriaAberto.value = false
+}
+
+function removerFotoSelecionada() {
+  capaMidiaId.value = null
+  fotoPreview.value = null
 }
 
 async function salvarJogador() {
@@ -121,19 +119,15 @@ async function salvarJogador() {
     return
   }
 
-  if (!jogadorId.value && !fotoFile.value) {
-    toastManager.error('Selecione uma foto para o jogador')
-    return
-  }
-
   loadingJogador.value = true
   try {
+    const payload: any = { ...jogadorForm }
+    if (capaMidiaId.value) payload.midiaId = capaMidiaId.value
     if (jogadorId.value) {
-      await api.atualizarJogador(jogadorId.value, jogadorForm, fotoFile.value)
+      await api.atualizarJogador(jogadorId.value, payload)
       toastManager.success('Jogador atualizado com sucesso!')
     } else {
-      if (!fotoFile.value) throw new Error('Foto é obrigatória')
-      await api.criarJogador(jogadorForm, fotoFile.value)
+      await api.criarJogador(payload)
       toastManager.success('Jogador criado com sucesso!')
     }
     await refreshJogadores()
@@ -270,22 +264,15 @@ const posicoes = [
               </svg>
             </div>
             <div class="flex-1">
-              <label class="block px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 cursor-pointer text-center">
-                <span class="text-sm text-gray-700">
-                  {{ fotoFile ? 'Trocar foto' : 'Selecionar foto' }}
-                </span>
-                <input type="file" class="hidden" accept="image/*" @change="onFotoChange" />
-              </label>
-              <div v-if="fotoFile" class="mt-2 flex items-center gap-2">
-                <span class="text-sm text-gray-600">{{ fotoFile.name }}</span>
-                <button
-                  type="button"
-                  class="text-sm text-red-600 hover:text-red-800"
-                  @click="removerFotoSelecionada"
-                >
+              <div class="flex gap-2">
+                <button type="button" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200" @click="abrirModalGaleria">
+                  Selecionar da Galeria
+                </button>
+                <button v-if="fotoPreview" type="button" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200" @click="removerFotoSelecionada">
                   Remover
                 </button>
               </div>
+              
             </div>
           </div>
         </div>
@@ -381,6 +368,41 @@ const posicoes = [
           >
             {{ loadingJogador ? 'Salvando...' : 'Salvar' }}
           </button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Modal Selecionar Capa da Galeria -->
+    <Modal :open="modalGaleriaAberto" @close="fecharModalGaleria" title="Selecionar imagem da Galeria" size="large">
+      <div class="space-y-4">
+        <div v-if="carregandoGaleria" class="text-sm text-gray-600">Carregando álbuns...</div>
+        <div v-if="erroGaleria" class="text-sm text-red-600">{{ erroGaleria }}</div>
+        <div v-if="albunsGaleria && albunsGaleria.length === 0" class="text-sm text-gray-600">Nenhum álbum disponível.</div>
+        <div v-if="albunsGaleria" class="space-y-6 max-h-[60vh] overflow-auto pr-2">
+          <div v-for="album in albunsGaleria" :key="album.id" class="border rounded p-3">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-medium text-gray-800">{{ album.titulo }}</h4>
+              <span class="text-xs text-gray-500">{{ album.tipo }}</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <button
+                v-for="midia in album.midias"
+                :key="midia.id"
+                type="button"
+                class="border rounded overflow-hidden hover:ring-2 hover:ring-[var(--brand-green)]"
+                @click="selecionarCapa(midia)"
+                title="Selecionar"
+              >
+                <img :src="midia.url" :alt="midia.legenda" class="w-full h-28 object-cover" />
+                <div class="px-2 py-1 text-xs text-gray-600 truncate text-left">{{ midia.legenda }}</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <button type="button" class="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200" @click="fecharModalGaleria">Fechar</button>
         </div>
       </template>
     </Modal>

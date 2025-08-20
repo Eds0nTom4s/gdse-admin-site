@@ -90,16 +90,25 @@
           ></textarea>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Imagem da Notícia</label>
-          <input
-            ref="imagemInput"
-            type="file"
-            accept="image/*"
-            @change="handleImageChange"
-            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-          <p class="text-xs text-gray-500 mt-1">Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB</p>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Capa da Notícia</label>
+          <div class="flex items-center gap-3">
+            <div class="w-24 h-24 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+              <template v-if="capaPreviewUrl">
+                <img :src="capaPreviewUrl" alt="capa" class="w-full h-full object-cover" />
+              </template>
+              <svg v-else class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex gap-2">
+                <button type="button" class="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200" @click="abrirModalGaleria">Selecionar da Galeria</button>
+                <button v-if="capaPreviewUrl" type="button" class="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200" @click="removerCapa">Remover</button>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">A capa deve ser uma imagem. Vídeos não são aceites.</p>
+            </div>
+          </div>
         </div>
 
         <!-- Autor: Somente selecionável na criação, readonly na edição -->
@@ -223,6 +232,43 @@
         </div>
       </template>
     </Modal>
+
+    <!-- Modal Selecionar Capa da Galeria -->
+    <Modal :open="modalGaleriaAberto" @close="fecharModalGaleria" title="Selecionar imagem da Galeria" size="large">
+      <div class="space-y-4">
+        <div v-if="carregandoGaleria" class="text-sm text-gray-600">Carregando álbuns...</div>
+        <div v-if="erroGaleria" class="text-sm text-red-600">{{ erroGaleria }}</div>
+
+        <div v-if="albunsGaleria && albunsGaleria.length === 0" class="text-sm text-gray-600">Nenhum álbum disponível.</div>
+
+        <div v-if="albunsGaleria" class="space-y-6 max-h-[60vh] overflow-auto pr-2">
+          <div v-for="album in albunsGaleria" :key="album.id" class="border rounded p-3">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-medium text-gray-800">{{ album.titulo }}</h4>
+              <span class="text-xs text-gray-500">{{ album.tipo }}</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <button
+                v-for="midia in album.midias"
+                :key="midia.id"
+                type="button"
+                class="border rounded overflow-hidden hover:ring-2 hover:ring-[var(--brand-green)]"
+                @click="selecionarCapa(midia)"
+                title="Selecionar"
+              >
+                <img :src="midia.url" :alt="midia.legenda" class="w-full h-28 object-cover" />
+                <div class="px-2 py-1 text-xs text-gray-600 truncate text-left">{{ midia.legenda }}</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <button type="button" class="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200" @click="fecharModalGaleria">Fechar</button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -270,7 +316,7 @@ onMounted(async () => {
 const refresh = carregarNoticias
 
 // Computed para usar as notícias com autor já incluído
-const noticiasComAutor = computed(() => {
+const noticiasComAutor = computed<any[]>(() => {
   if (!noticias.value) return []
   return noticias.value.map(noticia => ({
     ...noticia,
@@ -288,8 +334,14 @@ const carregandoAcao = ref(false)
 // Estados para dados atuais
 const noticiaAtual = ref<any | null>(null)
 const noticiaParaExcluir = ref<any | null>(null)
-const imagemSelecionada = ref<File | null>(null)
-const imagemInput = ref<HTMLInputElement | null>(null)
+const imagemSelecionada = ref<File | null>(null) // deprecado, não usado
+const imagemInput = ref<HTMLInputElement | null>(null) // deprecado, não usado
+const capaMidiaId = ref<number | null>(null)
+const capaPreviewUrl = ref<string | null>(null)
+const modalGaleriaAberto = ref(false)
+const albunsGaleria = ref<any[] | null>(null)
+const carregandoGaleria = ref(false)
+const erroGaleria = ref<string | null>(null)
 
 // Formulário
 const form = reactive({
@@ -339,10 +391,8 @@ function limparForm() {
   form.titulo = ''
   form.conteudo = ''
   form.autorId = ''
-  imagemSelecionada.value = null
-  if (imagemInput.value) {
-    imagemInput.value.value = ''
-  }
+  capaMidiaId.value = null
+  capaPreviewUrl.value = null
 }
 
 function preencherForm(noticia: any) {
@@ -356,10 +406,47 @@ function preencherForm(noticia: any) {
   }
   
   // Nota: Não preenchemos a imagem pois seria necessário baixar e converter para File
-  imagemSelecionada.value = null
-  if (imagemInput.value) {
-    imagemInput.value.value = ''
+  capaMidiaId.value = null
+  capaPreviewUrl.value = noticia.imagemUrl || null
+}
+
+// Modal Galeria (simplificado: usa lista de álbuns existente da página de Galeria)
+async function abrirModalGaleria() {
+  modalGaleriaAberto.value = true
+  if (albunsGaleria.value) return
+  carregandoGaleria.value = true
+  erroGaleria.value = null
+  try {
+    const albuns = await api.listAlbuns()
+    // Filtrar mídias do tipo IMAGEM
+    albunsGaleria.value = (albuns || []).map((a: any) => ({
+      ...a,
+      midias: (a.midias || []).filter((m: any) => m.tipo === 'IMAGEM')
+    }))
+  } catch (e: any) {
+    erroGaleria.value = 'Erro ao carregar álbuns. Tente novamente.'
+  } finally {
+    carregandoGaleria.value = false
   }
+}
+
+function fecharModalGaleria() {
+  modalGaleriaAberto.value = false
+}
+
+function selecionarCapa(midia: any) {
+  if (midia.tipo !== 'IMAGEM') {
+    toast.warning('A capa deve ser uma imagem.')
+    return
+  }
+  capaMidiaId.value = midia.id
+  capaPreviewUrl.value = midia.url
+  modalGaleriaAberto.value = false
+}
+
+function removerCapa() {
+  capaMidiaId.value = null
+  capaPreviewUrl.value = null
 }
 
 // Função para obter nome do autor - agora usa nomeAutor diretamente
@@ -440,23 +527,15 @@ async function salvarNoticia() {
       noticiaData.autorId = parseInt(form.autorId)
     }
 
-    // Debug: verificar dados do frontend
-    console.log('=== FRONTEND DEBUG ===')
-    console.log('editando:', editando.value)
-    console.log('noticiaData:', noticiaData)
-    console.log('imagemSelecionada:', imagemSelecionada.value)
-    if (imagemSelecionada.value) {
-      console.log('Arquivo selecionado:')
-      console.log('- Nome:', imagemSelecionada.value.name)
-      console.log('- Tipo:', imagemSelecionada.value.type)
-      console.log('- Tamanho:', imagemSelecionada.value.size)
+    // Seleção de capa
+    if (capaMidiaId.value) {
+      noticiaData.midiaId = capaMidiaId.value
     }
-    console.log('=== FIM DEBUG ===')
 
     if (editando.value && noticiaAtual.value) {
-      await api.atualizarNoticia(noticiaAtual.value.id, noticiaData, imagemSelecionada.value || undefined)
+      await api.atualizarNoticia(noticiaAtual.value.id, noticiaData)
     } else {
-      await api.criarNoticia(noticiaData, imagemSelecionada.value || undefined)
+      await api.criarNoticia(noticiaData)
     }
 
     await refresh()
@@ -490,4 +569,8 @@ async function confirmarExclusao() {
     carregandoAcao.value = false
   }
 }
+</script>
+
+<script lang="ts">
+// Nota: Modal de galeria reutiliza endpoints já existentes de albuns
 </script>

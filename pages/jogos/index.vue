@@ -1,43 +1,119 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-gray-800">Jogos</h2>
-      <button class="px-3 py-2 rounded bg-[var(--brand-green)] text-white" @click="openCriar">Novo Jogo</button>
+      <h2 class="text-2xl font-semibold text-gray-900">Jogos</h2>
+      <button class="px-4 py-2 rounded bg-[var(--brand-green)] text-white hover:opacity-90" @click="openCriar">Novo Jogo</button>
     </div>
 
-    <Tabs v-model="activeTab" :tabs="['Próximos Jogos', 'Resultados', 'Classificação']">
+    <Tabs v-model="activeTab" :tabs="['Agendados', 'Em andamento', 'Finalizados', 'Cancelados']">
       <template #default="{ active }">
-        <div v-show="active === 0" class="space-y-3">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div v-for="j in proximos || []" :key="j.id" class="rounded bg-white border p-4">
-              <div class="text-sm text-gray-500">{{ j.competicao?.nome }}</div>
-              <div class="mt-1 text-base font-semibold">{{ j.adversario }}</div>
-              <div class="text-sm text-gray-600">{{ formatDate(j.data || j.dataHora) }} • {{ j.local }}</div>
+        <!-- Agendados -->
+        <div v-show="active === 0">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div
+              v-for="j in agendados"
+              :key="j.id"
+              class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden"
+            >
+              <div class="p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <img v-if="j.logotipoAdversario" :src="j.logotipoAdversario" alt="logo adversário" class="h-8 w-8 object-contain" />
+                    <div>
+                      <div class="text-sm text-gray-500">{{ j.competicao?.nome || 'Competição' }}</div>
+                      <div class="text-lg font-semibold text-gray-900">{{ j.adversario }}</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">Agendado</span>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-3 flex items-center justify-end gap-2 text-sm">
+                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
+                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click="openGerenciar(j)">Convocados</button>
+                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div v-show="active === 1" class="space-y-3">
-          <DataTable
-            :headers="['Data', 'Competição', 'Adversário', 'Local', 'Resultado']"
-            :keys="['dataHora', 'competicao', 'adversario', 'local', 'resultado']"
-            :rows="resultados"
-          >
-            <template #cell:dataHora="{ row }">{{ formatDate(row.dataHora) }}</template>
-            <template #cell:competicao="{ row }">{{ row.competicao?.nome }}</template>
-            <template #actions="{ row }">
-              <div class="space-x-2 text-sm">
-                <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(row)">Editar</button>
-                <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(row)">Remover</button>
+
+        <!-- Em andamento -->
+        <div v-show="active === 1">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="j in emAndamento" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden">
+              <div class="p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <img v-if="j.logotipoAdversario" :src="j.logotipoAdversario" alt="logo adversário" class="h-8 w-8 object-contain" />
+                    <div>
+                      <div class="text-sm text-gray-500">{{ j.competicao?.nome || 'Competição' }}</div>
+                      <div class="text-lg font-semibold text-gray-900">{{ j.adversario }}</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Ao vivo</span>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-3 flex items-center justify-end gap-2 text-sm">
+                  <button class="px-2 py-1 rounded bg-amber-600 text-white" @click="openGerenciar(j)">Eventos</button>
+                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
+                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                </div>
               </div>
-            </template>
-          </DataTable>
+            </div>
+          </div>
         </div>
-        <div v-show="active === 2" class="space-y-3">
-          <DataTable
-            :headers="['Competição', 'Detalhe']"
-            :keys="['competicaoNome', 'info']"
-            :rows="classificacoesRows"
-          />
+
+        <!-- Finalizados -->
+        <div v-show="active === 2">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="j in finalizados" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden">
+              <div class="p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <img v-if="j.logotipoAdversario" :src="j.logotipoAdversario" alt="logo adversário" class="h-8 w-8 object-contain" />
+                    <div>
+                      <div class="text-sm text-gray-500">{{ j.competicao?.nome || 'Competição' }}</div>
+                      <div class="text-lg font-semibold text-gray-900">{{ j.adversario }}</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">Finalizado</span>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-4 flex items-center justify-between">
+                  <div class="text-2xl font-bold text-gray-900">{{ j.golsCasa != null && j.golsFora != null ? `${j.golsCasa}-${j.golsFora}` : '—' }}</div>
+                  <div class="flex items-center gap-2 text-sm">
+                    <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
+                    <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cancelados -->
+        <div v-show="active === 3">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="j in cancelados" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden">
+              <div class="p-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <img v-if="j.logotipoAdversario" :src="j.logotipoAdversario" alt="logo adversário" class="h-8 w-8 object-contain" />
+                    <div>
+                      <div class="text-sm text-gray-500">{{ j.competicao?.nome || 'Competição' }}</div>
+                      <div class="text-lg font-semibold text-gray-900">{{ j.adversario }}</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">Cancelado</span>
+                </div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-3 flex items-center justify-end gap-2 text-sm">
+                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
+                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </Tabs>
@@ -53,20 +129,41 @@
         </select>
       </div>
       <div>
+        <label class="block text-sm text-gray-700">Grupo</label>
+        <select v-model.number="form.grupoId" required class="mt-1 w-full px-3 py-2 border rounded">
+          <option :value="undefined" disabled>Selecione um grupo</option>
+          <option v-for="g in grupos || []" :key="g.id" :value="g.id">{{ g.nome }}</option>
+        </select>
+      </div>
+      <div>
         <label class="block text-sm text-gray-700">Adversário</label>
         <input v-model="form.adversario" type="text" required class="mt-1 w-full px-3 py-2 border rounded" />
       </div>
       <div>
         <label class="block text-sm text-gray-700">Local</label>
-        <input v-model="form.local" type="text" required class="mt-1 w-full px-3 py-2 border rounded" />
+        <input v-model="form.local" type="text" required :disabled="localDisabled" class="mt-1 w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:text-gray-500" />
+        <p v-if="form.emCasa && !clube?.estadio" class="mt-1 text-xs text-amber-700">Estádio do clube não está configurado. Defina em Configurações.</p>
       </div>
       <div>
         <label class="block text-sm text-gray-700">Data e Hora</label>
-        <input v-model="form.dataHora" type="datetime-local" required class="mt-1 w-full px-3 py-2 border rounded" />
+        <input v-model="form.dataHora" type="datetime-local" step="60" required class="mt-1 w-full px-3 py-2 border rounded" />
+      </div>
+      <div>
+        <label class="block text-sm text-gray-700">Jogo em casa?</label>
+        <div class="mt-2 flex items-center space-x-2">
+          <input id="emCasa" v-model="form.emCasa" type="checkbox" class="h-4 w-4" />
+          <label for="emCasa" class="text-sm text-gray-700">Sim</label>
+        </div>
       </div>
       <div class="md:col-span-2">
-        <label class="block text-sm text-gray-700">Resultado (opcional)</label>
-        <input v-model="form.resultado" type="text" placeholder="Ex.: 2-1" class="mt-1 w-full px-3 py-2 border rounded" />
+        <label class="block text-sm text-gray-700">Logotipo do adversário</label>
+        <div class="mt-2 flex items-center gap-3">
+          <img v-if="logoPreview || form.logotipoAdversario" :src="logoPreview || form.logotipoAdversario" alt="Pré-visualização" class="h-12 w-12 object-contain border rounded bg-white" />
+          <input ref="logoInput" type="file" accept="image/png,image/jpeg" class="hidden" @change="onLogoChange" />
+          <button type="button" class="px-3 py-2 rounded bg-gray-100 text-gray-800 border" @click="logoInput?.click()" :disabled="uploadingLogo">{{ uploadingLogo ? 'Carregando...' : 'Carregar logo' }}</button>
+          <button v-if="logoPreview || form.logotipoAdversario" type="button" class="px-3 py-2 rounded bg-red-100 text-red-700" @click="removerLogo">Remover</button>
+        </div>
+        <p class="mt-1 text-xs text-gray-500">Formatos: PNG/JPG. Tamanho sugerido: 256x256px. Máximo ~1MB.</p>
       </div>
     </form>
     <template #footer>
@@ -76,12 +173,131 @@
       </div>
     </template>
   </Modal>
+
+  <Modal :open="gerenciarOpen" :title="`Gerenciar Jogo`" @close="closeGerenciar">
+    <div v-if="jogoAtual" class="space-y-4">
+      <div class="text-sm text-gray-600">
+        <div><span class="font-semibold">Adversário:</span> {{ jogoAtual.adversario }}</div>
+        <div><span class="font-semibold">Data:</span> {{ formatDate(jogoAtual.dataHora) }}</div>
+        <div><span class="font-semibold">Local:</span> {{ jogoAtual.local }}</div>
+        <div><span class="font-semibold">Estado:</span> {{ jogoAtual.estadoJogo || '—' }}</div>
+      </div>
+
+      <Tabs v-model="gerenciarTab" :tabs="gerenciarTabs">
+        <template #default="{ active }">
+          <div v-show="active === 0" class="space-y-3">
+            <div class="flex items-center space-x-2">
+              <label class="text-sm text-gray-700">Novo estado</label>
+              <select v-model="novoEstado" class="px-3 py-2 border rounded" :disabled="estadosPossiveis.length === 0">
+                <option v-if="estadosPossiveis.length === 0" :value="undefined">Sem transições</option>
+                <option v-for="op in estadosPossiveis" :key="op" :value="op">{{ op }}</option>
+              </select>
+              <button class="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50" :disabled="alterandoEstado || !novoEstado" @click="alterarEstado">Alterar</button>
+              <button v-if="jogoAtual?.estadoJogo === 'EM_ANDAMENTO'" class="px-3 py-2 rounded bg-emerald-600 text-white disabled:opacity-50" :disabled="finalizandoJogo" @click="finalizarJogo">Finalizar</button>
+            </div>
+          </div>
+          <div v-show="active === 1 && jogoAtual?.estadoJogo === 'EM_ANDAMENTO'" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+              <div>
+                <label class="block text-sm text-gray-700">Tipo</label>
+                <select v-model="novoEvento.tipo" class="mt-1 w-full px-3 py-2 border rounded">
+                  <option v-for="t in tiposEvento" :key="t" :value="t">{{ t }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700">Minuto</label>
+                <input v-model.number="novoEvento.minuto" type="number" min="0" max="130" class="mt-1 w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700">Lado</label>
+                <select v-model="novoEvento.lado" class="mt-1 w-full px-3 py-2 border rounded">
+                  <option value="CASA">CASA</option>
+                  <option value="FORA">FORA</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700">Jogador (opcional)</label>
+                <select v-model.number="novoEvento.jogadorId" class="mt-1 w-full px-3 py-2 border rounded">
+                  <option :value="undefined">—</option>
+                  <option v-for="j in jogadores || []" :key="j.id" :value="j.id">{{ j.nomeCompleto || j.nome }}</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm text-gray-700">Observação</label>
+                <input v-model="novoEvento.observacao" type="text" class="mt-1 w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <button class="px-3 py-2 rounded bg-[var(--brand-green)] text-white disabled:opacity-50" :disabled="enviandoEvento" @click="adicionarEvento">Adicionar</button>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div v-for="e in eventos || []" :key="e.id || `${e.tipo}-${e.minuto}-${e.jogadorId || 'x'}`" class="flex items-center justify-between border rounded px-3 py-2">
+                <div class="text-sm">
+                  <span class="font-semibold">{{ e.tipo }}</span>
+                  <span class="mx-2">{{ e.minuto }}'</span>
+                  <span class="inline-block px-2 py-0.5 rounded text-xs" :class="e.lado === 'CASA' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'">{{ e.lado }}</span>
+                  <span v-if="e.jogadorNome || e.jogadorId" class="ml-2 text-gray-600">{{ e.jogadorNome || `#${e.jogadorId}` }}</span>
+                  <span v-if="e.observacao" class="ml-2 italic text-gray-500">— {{ e.observacao }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-show="active === 2 && jogoAtual?.estadoJogo === 'AGENDADO'" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+              <div>
+                <label class="block text-sm text-gray-700">Jogador</label>
+                <select v-model.number="novoConvocado.jogadorId" class="mt-1 w-full px-3 py-2 border rounded">
+                  <option :value="undefined" disabled>Selecione</option>
+                  <option v-for="j in jogadoresFiltrados" :key="j.id" :value="j.id">{{ j.nomeCompleto || j.nome }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700">Status</label>
+                <select v-model="novoConvocado.status" class="mt-1 w-full px-3 py-2 border rounded">
+                  <option value="TITULAR">TITULAR</option>
+                  <option value="RESERVA">RESERVA</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700">Posição provável (opcional)</label>
+                <input v-model="novoConvocado.posicaoProvavel" type="text" class="mt-1 w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <label class="block text-sm text-gray-700">Pesquisar jogador</label>
+                <input v-model="filtroJogador" type="text" placeholder="Nome ou número" class="mt-1 w-full px-3 py-2 border rounded" />
+              </div>
+              <div>
+                <button class="px-3 py-2 rounded bg-[var(--brand-green)] text-white disabled:opacity-50" :disabled="adicionandoConvocado || !novoConvocado.jogadorId" @click="adicionarConvocado">Adicionar</button>
+              </div>
+            </div>
+            <div class="space-y-2">
+              <div v-for="c in convocados || []" :key="c.jogadorId" class="flex items-center justify-between border rounded px-3 py-2">
+                <div class="text-sm flex items-center gap-3">
+                  <span class="font-semibold">{{ c.jogadorNome || `#${c.jogadorId}` }}</span>
+                  <select v-model="c.status" class="px-2 py-1 border rounded text-xs">
+                    <option value="TITULAR">TITULAR</option>
+                    <option value="RESERVA">RESERVA</option>
+                  </select>
+                  <input v-model="c.posicaoProvavel" placeholder="Posição provável" class="px-2 py-1 border rounded text-xs" />
+                </div>
+                <button class="px-2 py-1 rounded bg-red-600 text-white text-xs" @click="removerConvocado(c.jogadorId)">Remover</button>
+              </div>
+            </div>
+            <div class="text-right">
+              <button class="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50" :disabled="salvandoConvocados || !(convocados && convocados.length)" @click="salvarConvocados">Salvar convocados</button>
+            </div>
+          </div>
+          <div v-show="active === 1 && jogoAtual?.estadoJogo !== 'EM_ANDAMENTO'" class="text-sm text-gray-600">Gestão de eventos disponível apenas durante EM_ANDAMENTO.</div>
+          <div v-show="active === 2 && jogoAtual?.estadoJogo !== 'AGENDADO'" class="text-sm text-gray-600">Gestão de convocados disponível apenas em AGENDADO.</div>
+        </template>
+      </Tabs>
+    </div>
+  </Modal>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Tabs from '@/components/Tabs.vue'
-import DataTable from '@/components/DataTable.vue'
 import { useApi } from '@/services/api'
 import { toastManager } from '@/utils/toast'
 
@@ -89,17 +305,24 @@ const api = useApi()
 const toast = toastManager
 
 const activeTab = ref(0)
-const { data: proximos } = await useAsyncData('jogos:proximos', () => api.listProximosJogos())
 const { data: jogos } = await useAsyncData('jogos:todos', () => api.listJogos())
-const { data: classificacoes } = await useAsyncData('jogos:classificacoes', () => api.listClassificacoes())
 const { data: competicoes } = await useAsyncData('jogos:competicoes', () => api.listCompeticoes())
+const { data: grupos } = await useAsyncData('jogos:grupos', () => api.listGrupos())
+const { data: jogadores } = await useAsyncData('jogos:jogadores', () => api.listJogadores())
+const { data: clube } = await useAsyncData('jogos:clube', () => api.getClube())
 
-const resultados = computed(() => (jogos.value || []).filter((j: any) => !!j.resultado))
+// Lists por estado
+const agendados = computed(() => (jogos.value || []).filter((j: any) => j.estadoJogo === 'AGENDADO').sort(sortByDateAsc))
+const emAndamento = computed(() => (jogos.value || []).filter((j: any) => j.estadoJogo === 'EM_ANDAMENTO').sort(sortByDateAsc))
+const finalizados = computed(() => (jogos.value || []).filter((j: any) => j.estadoJogo === 'FINALIZADO').sort(sortByDateDesc))
+const cancelados = computed(() => (jogos.value || []).filter((j: any) => j.estadoJogo === 'CANCELADO').sort(sortByDateDesc))
 
-const classificacoesRows = computed(() => (classificacoes.value || []).map((c: any) => ({
-  competicaoNome: c?.competicao?.nome || c?.competicaoNome || 'Competição',
-  info: JSON.stringify(c)
-})))
+function sortByDateAsc(a: any, b: any) {
+  return new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()
+}
+function sortByDateDesc(a: any, b: any) {
+  return new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
+}
 
 function formatDate(iso?: string) {
   if (!iso) return '—'
@@ -112,14 +335,62 @@ const loading = ref(false)
 const form = ref<any>({
   id: undefined,
   competicaoId: undefined,
+  grupoId: undefined,
   adversario: '',
   local: '',
   dataHora: '',
-  resultado: ''
+  emCasa: false,
+  logotipoAdversario: ''
+})
+
+// Upload logo adversário
+const logoInput = ref<HTMLInputElement | null>(null)
+const logoPreview = ref<string | null>(null)
+const uploadingLogo = ref(false)
+
+async function onLogoChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (file.size > 1_500_000) {
+    toast.error('Ficheiro muito grande (máx ~1.5MB).')
+    return
+  }
+  uploadingLogo.value = true
+  try {
+    const resp = await api.uploadLogoAdversario(file)
+    // Espera-se que backend retorne { url }
+    form.value.logotipoAdversario = resp?.url || resp
+    logoPreview.value = form.value.logotipoAdversario
+  } catch (err) {
+    console.error(err)
+    toast.error('Falha ao carregar logotipo.')
+  } finally {
+    uploadingLogo.value = false
+    if (logoInput.value) logoInput.value.value = ''
+  }
+}
+
+function removerLogo() {
+  logoPreview.value = null
+  form.value.logotipoAdversario = ''
+}
+
+// Em casa → bloquear local com estádio do clube
+const localDisabled = computed(() => !!form.value.emCasa)
+
+watch(() => form.value.emCasa, (val) => {
+  if (val) {
+    if (clube.value?.estadio) {
+      form.value.local = clube.value.estadio
+    }
+  }
 })
 
 function openCriar() {
-  form.value = { id: undefined, competicaoId: undefined, adversario: '', local: '', dataHora: '', resultado: '' }
+  form.value = { id: undefined, competicaoId: undefined, grupoId: undefined, adversario: '', local: '', dataHora: '', emCasa: false, logotipoAdversario: '' }
+  logoPreview.value = null
+  if (logoInput.value) logoInput.value.value = ''
   modalOpen.value = true
 }
 
@@ -127,16 +398,21 @@ function openEditar(row: any) {
   form.value = {
     id: row.id,
     competicaoId: row.competicao?.id,
+    grupoId: row.grupo?.id,
     adversario: row.adversario,
     local: row.local,
     dataHora: (row.dataHora || row.data)?.slice(0, 16),
-    resultado: row.resultado || ''
+    emCasa: !!row.emCasa,
+    logotipoAdversario: row.logotipoAdversario || ''
   }
+  logoPreview.value = row.logotipoAdversario || null
   modalOpen.value = true
 }
 
 function closeModal() {
   modalOpen.value = false
+  logoPreview.value = null
+  if (logoInput.value) logoInput.value.value = ''
 }
 
 async function salvar() {
@@ -144,10 +420,12 @@ async function salvar() {
   try {
     const payload = {
       competicaoId: form.value.competicaoId,
+      grupoId: form.value.grupoId,
       adversario: form.value.adversario,
       local: form.value.local,
       dataHora: form.value.dataHora ? new Date(form.value.dataHora).toISOString() : undefined,
-      resultado: form.value.resultado || undefined
+      emCasa: !!form.value.emCasa,
+      logotipoAdversario: form.value.logotipoAdversario || undefined
     }
     if (form.value.id) {
       await api.atualizarJogo(form.value.id, payload)
@@ -156,8 +434,10 @@ async function salvar() {
       await api.criarJogo(payload)
       toast.success('Jogo criado com sucesso!')
     }
-    await Promise.all([useAsyncData('jogos:proximos', () => api.listProximosJogos(), { server: false }), useAsyncData('jogos:todos', () => api.listJogos(), { server: false })])
+    await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
     modalOpen.value = false
+    logoPreview.value = null
+    if (logoInput.value) logoInput.value.value = ''
   } catch (error) {
     console.error('Erro ao salvar jogo:', error)
     toast.error('Erro ao salvar jogo. Verifique os dados e tente novamente.')
@@ -171,10 +451,157 @@ async function remover(row: any) {
   try {
     await api.apagarJogo(row.id)
     toast.success('Jogo removido com sucesso!')
-    await Promise.all([useAsyncData('jogos:proximos', () => api.listProximosJogos(), { server: false }), useAsyncData('jogos:todos', () => api.listJogos(), { server: false })])
+    await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
   } catch (error) {
     console.error('Erro ao remover jogo:', error)
     toast.error('Não foi possível remover o jogo.')
   }
+}
+
+// Gerenciar (estado, eventos, convocados)
+const gerenciarOpen = ref(false)
+const gerenciarTab = ref(0)
+const jogoAtual = ref<any | null>(null)
+const gerenciarTabs = computed(() => {
+  const estado = jogoAtual.value?.estadoJogo
+  if (estado === 'AGENDADO') return ['Estado', 'Convocados']
+  if (estado === 'EM_ANDAMENTO') return ['Estado', 'Eventos']
+  return ['Estado']
+})
+
+// Estado
+const novoEstado = ref<string | undefined>(undefined)
+const alterandoEstado = ref(false)
+const finalizandoJogo = ref(false)
+const estadosPossiveis = computed(() => {
+  const atual = jogoAtual.value?.estadoJogo
+  if (atual === 'AGENDADO') return ['EM_ANDAMENTO', 'CANCELADO']
+  if (atual === 'EM_ANDAMENTO') return ['FINALIZADO', 'CANCELADO']
+  return []
+})
+
+async function alterarEstado() {
+  if (!jogoAtual.value?.id || !novoEstado.value) return
+  alterandoEstado.value = true
+  try {
+    const updated = await api.alterarEstadoJogo(jogoAtual.value.id, { estado: novoEstado.value })
+    jogoAtual.value = updated
+    toast.success('Estado atualizado!')
+    await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
+    gerenciarTab.value = 0
+  } catch (e) {
+    console.error(e)
+    toast.error('Falha ao alterar estado')
+  } finally {
+    alterandoEstado.value = false
+  }
+}
+
+async function finalizarJogo() {
+  if (!jogoAtual.value?.id) return
+  finalizandoJogo.value = true
+  try {
+    const updated = await api.finalizarJogo(jogoAtual.value.id)
+    jogoAtual.value = updated
+    toast.success('Jogo finalizado!')
+    await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
+  } catch (e) {
+    console.error(e)
+    toast.error('Falha ao finalizar jogo')
+  } finally {
+    finalizandoJogo.value = false
+  }
+}
+
+// Eventos
+const eventos = ref<any[] | null>(null)
+const novoEvento = ref<any>({ tipo: 'INICIO_JOGO', minuto: 0, lado: 'CASA', jogadorId: undefined, observacao: '' })
+const tiposEvento = ['GOL', 'ASSISTENCIA', 'CARTAO_AMARELO', 'CARTAO_VERMELHO', 'SUBSTITUICAO', 'LESAO', 'INTERVALO', 'INICIO_JOGO', 'FIM_JOGO']
+const enviandoEvento = ref(false)
+
+async function carregarEventos() {
+  if (!jogoAtual.value?.id) return
+  eventos.value = await api.listarEventosJogo(jogoAtual.value.id)
+}
+
+async function adicionarEvento() {
+  if (!jogoAtual.value?.id) return
+  enviandoEvento.value = true
+  try {
+    const payload: any = { ...novoEvento.value }
+    if (!payload.jogadorId) delete payload.jogadorId
+    if (!payload.observacao) delete payload.observacao
+    await api.registrarEventoJogo(jogoAtual.value.id, payload)
+    toast.success('Evento registado!')
+    await carregarEventos()
+    novoEvento.value = { tipo: 'INICIO_JOGO', minuto: 0, lado: 'CASA', jogadorId: undefined, observacao: '' }
+  } catch (e) {
+    console.error(e)
+    toast.error('Falha ao registar evento')
+  } finally {
+    enviandoEvento.value = false
+  }
+}
+
+// Convocados
+const convocados = ref<any[] | null>(null)
+const novoConvocado = ref<any>({ jogadorId: undefined, status: 'TITULAR', posicaoProvavel: '' })
+const adicionandoConvocado = ref(false)
+const salvandoConvocados = ref(false)
+const filtroJogador = ref('')
+const jogadoresFiltrados = computed(() => {
+  const query = (filtroJogador.value || '').toLowerCase().trim()
+  if (!query) return jogadores.value || []
+  return (jogadores.value || []).filter((j: any) => {
+    const nome = (j.nomeCompleto || j.nome || '').toLowerCase()
+    const numero = (j.numero != null ? String(j.numero) : '')
+    return nome.includes(query) || numero.includes(query)
+  })
+})
+
+async function carregarConvocados() {
+  if (!jogoAtual.value?.id) return
+  convocados.value = await api.listarConvocados(jogoAtual.value.id)
+}
+
+function removerConvocado(jogadorId: number) {
+  if (!convocados.value) return
+  convocados.value = convocados.value.filter(c => c.jogadorId !== jogadorId)
+}
+
+function adicionarConvocado() {
+  if (!novoConvocado.value.jogadorId) return
+  const existente = (convocados.value || []).some(c => c.jogadorId === novoConvocado.value.jogadorId)
+  if (existente) return
+  const item = { jogadorId: novoConvocado.value.jogadorId, status: novoConvocado.value.status, posicaoProvavel: novoConvocado.value.posicaoProvavel || undefined }
+  convocados.value = [...(convocados.value || []), item]
+  novoConvocado.value = { jogadorId: undefined, status: 'TITULAR', posicaoProvavel: '' }
+}
+
+async function salvarConvocados() {
+  if (!jogoAtual.value?.id) return
+  salvandoConvocados.value = true
+  try {
+    const payload = (convocados.value || []).map(c => ({ jogadorId: c.jogadorId, status: c.status, posicaoProvavel: c.posicaoProvavel || undefined }))
+    await api.definirConvocados(jogoAtual.value.id, payload)
+    toast.success('Convocados atualizados!')
+  } catch (e) {
+    console.error(e)
+    toast.error('Falha ao salvar convocados')
+  } finally {
+    salvandoConvocados.value = false
+  }
+}
+
+function openGerenciar(row: any) {
+  jogoAtual.value = row
+  gerenciarTab.value = 0
+  novoEstado.value = undefined
+  gerenciarOpen.value = true
+  Promise.all([carregarEventos(), carregarConvocados()]).catch(() => {})
+}
+
+function closeGerenciar() {
+  gerenciarOpen.value = false
 }
 </script>

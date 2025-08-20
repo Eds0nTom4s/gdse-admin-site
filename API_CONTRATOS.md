@@ -648,7 +648,6 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
     "local": "Estádio Nacional",
     "adversario": "FC Exemplo",
     "logotipoAdversario": "https://example.com/logo.png",
-    "resultado": "2-1",
     "emCasa": true,
     "competicaoId": 1,
     "grupoId": 1
@@ -669,7 +668,7 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
 - **URL:** `/api/jogos/{id}`
 - **Resposta (204 No Content):** Sem corpo.
 
-### 8. Listar os próximos 3 jogos
+### 8. Listar próximos jogos
 
 - **Método:** `GET`
 - **URL:** `/api/jogos/proximos`
@@ -696,6 +695,69 @@ Este documento detalha os contratos para todos os endpoints da API do backend.
     }
   ]
   ```
+  - Inclui apenas jogos com `estadoJogo` em `AGENDADO` ou `EM_ANDAMENTO` e com `data` futura.
+
+### 9. Convocados do jogo
+
+- **Definir convocados**
+  - **Método:** `POST`
+  - **URL:** `/api/jogos/{id}/convocados`
+  - **Corpo da Requisição:** `application/json` - Array de `ConvocacaoDTO`
+  - **Resposta (204 No Content):** Sem corpo.
+
+- **Listar convocados**
+  - **Método:** `GET`
+  - **URL:** `/api/jogos/{id}/convocados`
+  - **Resposta (200 OK):** `application/json` - Array de `ConvocacaoResponseDTO`
+
+### 10. Eventos do jogo
+
+- **Registar evento**
+  - **Método:** `POST`
+  - **URL:** `/api/jogos/{id}/eventos`
+  - **Corpo da Requisição:** `application/json` - `EventoJogoDTO`
+  - **Resposta (201 Created):** `application/json` - `EventoJogoResponseDTO`
+
+- **Listar eventos**
+  - **Método:** `GET`
+  - **URL:** `/api/jogos/{id}/eventos`
+  - **Resposta (200 OK):** `application/json` - Array de `EventoJogoResponseDTO` (ordenado por minuto)
+
+### 11. Estado do jogo
+
+- **Alterar estado**
+  - **Método:** `PATCH`
+  - **URL:** `/api/jogos/{id}/estado`
+  - **Corpo da Requisição:** `application/json` - `AlterarEstadoDTO`
+  - **Resposta (200 OK):** `application/json` - `JogoResponseDTO`
+
+- **Finalizar jogo**
+  - **Método:** `POST`
+  - **URL:** `/api/jogos/{id}/finalizar`
+  - **Resposta (200 OK):** `application/json` - `JogoResponseDTO` (placar derivado contabilizando eventos `GOL` por `lado`)
+
+#### Regras de estado
+
+- `EstadoJogo`: `AGENDADO`, `EM_ANDAMENTO`, `FINALIZADO`, `CANCELADO`.
+- Transições válidas:
+  - `AGENDADO` → `EM_ANDAMENTO` | `CANCELADO`
+  - `EM_ANDAMENTO` → `FINALIZADO` | `CANCELADO`
+- Eventos não são aceites quando `estadoJogo ∈ {FINALIZADO, CANCELADO}`.
+
+#### Modelos (Jogos)
+
+- `JogoRequestDTO`: `dataHora` (ISO), `local`, `adversario`, `logotipoAdversario` (opcional), `emCasa` (bool), `competicaoId` (long), `grupoId` (long)
+- `JogoResponseDTO`: `id`, `dataHora`, `local`, `adversario`, `logotipoAdversario`, `emCasa`, `estadoJogo`, `golsCasa` (int, opcional), `golsFora` (int, opcional), `competicao` {`id`,`nome`}, `grupo` {`id`,`nome`,`modalidade` {`id`,`nome`}}, `criadoEm`
+- `ProximoJogoDTO`: `id`, `adversario`, `data`, `local`
+- `ConvocacaoDTO`: `jogadorId` (long), `status` (`TITULAR`|`RESERVA`), `posicaoProvavel` (opcional)
+- `ConvocacaoResponseDTO`: `jogadorId`, `jogadorNome`, `status`, `posicaoProvavel`
+- `EventoJogoDTO`: `tipo` (`GOL`, `ASSISTENCIA`, `CARTAO_AMARELO`, `CARTAO_VERMELHO`, `SUBSTITUICAO`, `LESAO`, `INTERVALO`, `INICIO_JOGO`, `FIM_JOGO`), `minuto` (0–130), `lado` (`CASA`|`FORA`), `jogadorId` (opcional), `observacao` (opcional)
+- `EventoJogoResponseDTO`: `id`, `tipo`, `minuto`, `lado`, `jogadorId` (opcional), `jogadorNome` (opcional), `observacao`
+
+Notas:
+
+- "Lado" em eventos: `CASA` corresponde ao GDSE quando `emCasa = true`; caso `emCasa = false`, GDSE corresponde ao `FORA`.
+- "Próximos jogos" não inclui jogos finalizados/cancelados e considera sempre `data > agora`.
 
 ---
 

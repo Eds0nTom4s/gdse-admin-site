@@ -1,5 +1,5 @@
 import { ofetch } from 'ofetch'
-import type { ClubeRequestDTO } from '@/types'
+import type { ClubeRequestDTO, NoticiaRequestDTO } from '@/types'
 import type { JogadorRequestDTO } from '@/types/jogador'
 import type { AlbumRequestDTO, MidiaRequestDTO } from '@/types/galeria'
 
@@ -54,128 +54,31 @@ export function createApiClient(baseURL: string) {
       }
       return client(`/api/noticias/${id}`)
     },
-    criarNoticia: async (noticiaData: any, imagem?: File) => {
+    criarNoticia: async (payload: NoticiaRequestDTO) => {
       if (useMockData) {
         await delay(500)
         const novaNoticia = {
           id: Math.max(...mockNoticias.map(n => n.id)) + 1,
-          ...noticiaData,
-          imagemUrl: imagem ? `https://via.placeholder.com/600x400/04aa5d/ffffff?text=${encodeURIComponent(noticiaData.titulo)}` : null,
-          publicadoEm: new Date().toISOString()
+          ...payload,
+          publicadoEm: new Date().toISOString(),
+          nomeAutor: 'Mock Autor',
+          resumo: payload.conteudo?.slice(0, 120) || ''
         }
-        mockNoticias.unshift(novaNoticia)
+        mockNoticias.unshift(novaNoticia as any)
         return novaNoticia
       }
-      
-      const formData = new FormData()
-      
-      // Debug: verificar se estamos criando FormData corretamente
-      console.log('Criando FormData para POST')
-      console.log('noticiaData:', noticiaData)
-      console.log('imagem:', imagem)
-      
-      // Criar Blob para o JSON com tipo específico
-      const noticiaBlob = new Blob([JSON.stringify(noticiaData)], { 
-        type: 'application/json' 
-      })
-      
-      formData.append('noticia', noticiaBlob, 'noticia.json')
-      if (imagem) {
-        formData.append('imagem', imagem, imagem.name)
-      }
-      
-      // Removido logs de debug para evitar instanceof em ambiente SSR
-      
-      // Tentar uma abordagem completamente diferente - usar ofetch com configuração específica
-      const config = useRuntimeConfig()
-      const url = `${config.public.apiBase}/api/noticias`
-      
-      console.log('Enviando para:', url)
-      
-      try {
-        console.log('Tentando com ofetch e configuração específica')
-        
-        return await client('/api/noticias', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            // Remover qualquer header que possa interferir - deixar vazio para FormData
-          }
-        })
-      } catch (error) {
-        console.error('Ofetch falhou, tentando fetch básico')
-        
-        // Fallback: fetch simples
-        const response = await $fetch(url, {
-          method: 'POST',
-          body: formData
-        })
-        
-        return response
-      }
+      return client('/api/noticias', { method: 'POST', body: payload })
     },
-    atualizarNoticia: async (id: number | string, noticiaData: any, imagem?: File) => {
+    atualizarNoticia: async (id: number | string, payload: NoticiaRequestDTO) => {
       if (useMockData) {
         await delay(500)
         const index = mockNoticias.findIndex(n => n.id == id)
         if (index === -1) throw new Error('Notícia não encontrada')
-        
-        const updatedNoticia = { ...mockNoticias[index], ...noticiaData }
-        if (imagem) {
-          updatedNoticia.imagemUrl = `https://via.placeholder.com/600x400/04aa5d/ffffff?text=${encodeURIComponent(noticiaData.titulo || updatedNoticia.titulo)}`
-        }
-        
-        mockNoticias[index] = updatedNoticia
-        return mockNoticias[index]
+        const updated = { ...mockNoticias[index], ...payload }
+        mockNoticias[index] = updated as any
+        return updated
       }
-      
-      const formData = new FormData()
-      
-      // Debug: verificar se estamos criando FormData corretamente
-      console.log('Criando FormData para PUT')
-      console.log('noticiaData:', noticiaData)
-      console.log('imagem:', imagem)
-      
-      // Criar Blob para o JSON com tipo específico
-      const noticiaBlob = new Blob([JSON.stringify(noticiaData)], { 
-        type: 'application/json' 
-      })
-      
-      formData.append('noticia', noticiaBlob, 'noticia.json')
-      if (imagem) {
-        formData.append('imagem', imagem, imagem.name)
-      }
-      
-      // Removido logs de debug para evitar instanceof em ambiente SSR
-      
-      // Usar fetch nativo para multipart/form-data
-      const config = useRuntimeConfig()
-      const url = `${config.public.apiBase}/api/noticias/${id}`
-      
-      console.log('Enviando para:', url)
-      
-      // Tentar uma abordagem completamente diferente - usar ofetch com configuração específica
-      try {
-        console.log('Tentando com ofetch e configuração específica')
-        
-        return await client(`/api/noticias/${id}`, {
-          method: 'PUT',
-          body: formData,
-          headers: {
-            // Remover qualquer header que possa interferir - deixar vazio para FormData
-          }
-        })
-      } catch (error) {
-        console.error('Ofetch falhou, tentando fetch básico')
-        
-        // Fallback: fetch simples
-        const response = await $fetch(`${config.public.apiBase}/api/noticias/${id}`, {
-          method: 'PUT',
-          body: formData
-        })
-        
-        return response
-      }
+      return client(`/api/noticias/${id}`, { method: 'PUT', body: payload })
     },
     apagarNoticia: async (id: number | string) => {
       if (useMockData) {
@@ -240,8 +143,24 @@ export function createApiClient(baseURL: string) {
     atualizarJogo: (id: number | string, payload: any) => client(`/api/jogos/${id}`, { method: 'PUT', body: payload }),
     apagarJogo: (id: number | string) => client(`/api/jogos/${id}`, { method: 'DELETE' }),
     listProximosJogos: () => client('/api/jogos/proximos'),
+    // Jogos - Convocados
+    definirConvocados: (id: number | string, convocados: any[]) => client(`/api/jogos/${id}/convocados`, { method: 'POST', body: convocados }),
+    listarConvocados: (id: number | string) => client(`/api/jogos/${id}/convocados`),
+    // Jogos - Eventos
+    registrarEventoJogo: (id: number | string, evento: any) => client(`/api/jogos/${id}/eventos`, { method: 'POST', body: evento }),
+    listarEventosJogo: (id: number | string) => client(`/api/jogos/${id}/eventos`),
+    // Jogos - Estado e Finalização
+    alterarEstadoJogo: (id: number | string, payload: any) => client(`/api/jogos/${id}/estado`, { method: 'PATCH', body: payload }),
+    finalizarJogo: (id: number | string) => client(`/api/jogos/${id}/finalizar`, { method: 'POST' }),
     // Competições (para seleção no formulário de jogos)
     listCompeticoes: () => client('/api/competicoes'),
+
+    // Ficheiros - Jogos (logotipo do adversário)
+    uploadLogoAdversario: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return client('/api/ficheiros/adversarios', { method: 'POST', body: formData })
+    },
 
     // Classificações
     listClassificacoes: () => client('/api/classificacoes'),
@@ -278,27 +197,27 @@ export function createApiClient(baseURL: string) {
     // Jogadores
     listJogadores: () => client('/api/jogadores'),
     getJogador: (id: number | string) => client(`/api/jogadores/${id}`),
-    criarJogador: async (jogador: JogadorRequestDTO, foto: File) => {
-      const formData = new FormData()
-      const jogadorBlob = new Blob([JSON.stringify(jogador)], { type: 'application/json' })
-      formData.append('jogador', jogadorBlob, 'jogador.json')
-      formData.append('foto', foto)
-
-      return client('/api/jogadores', {
-        method: 'POST',
-        body: formData
-      })
+    criarJogador: async (jogador: JogadorRequestDTO, foto?: File) => {
+      if (foto) {
+        const formData = new FormData()
+        const jogadorBlob = new Blob([JSON.stringify(jogador)], { type: 'application/json' })
+        formData.append('jogador', jogadorBlob, 'jogador.json')
+        formData.append('foto', foto)
+        return client('/api/jogadores', { method: 'POST', body: formData })
+      }
+      // Sem ficheiro: enviar JSON
+      return client('/api/jogadores', { method: 'POST', body: jogador })
     },
     atualizarJogador: async (id: number | string, jogador: JogadorRequestDTO, foto?: File) => {
-      const formData = new FormData()
-      const jogadorBlob = new Blob([JSON.stringify(jogador)], { type: 'application/json' })
-      formData.append('jogador', jogadorBlob, 'jogador.json')
-      if (foto) formData.append('foto', foto)
-
-      return client(`/api/jogadores/${id}`, {
-        method: 'PUT',
-        body: formData
-      })
+      if (foto) {
+        const formData = new FormData()
+        const jogadorBlob = new Blob([JSON.stringify(jogador)], { type: 'application/json' })
+        formData.append('jogador', jogadorBlob, 'jogador.json')
+        formData.append('foto', foto)
+        return client(`/api/jogadores/${id}`, { method: 'PUT', body: formData })
+      }
+      // Sem ficheiro: enviar JSON
+      return client(`/api/jogadores/${id}`, { method: 'PUT', body: jogador })
     },
     apagarJogador: (id: number | string) => client(`/api/jogadores/${id}`, { method: 'DELETE' }),
 

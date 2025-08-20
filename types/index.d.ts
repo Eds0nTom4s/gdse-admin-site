@@ -35,6 +35,14 @@ export interface NoticiaResponseDTO {
   resumo: string
 }
 
+export interface NoticiaRequestDTO {
+  titulo: string
+  conteudo: string
+  autorId?: number
+  midiaId?: number
+  imagemUrl?: string
+}
+
 export interface UsuarioResponseDTO {
   id: number
   nome: string
