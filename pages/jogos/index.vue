@@ -13,7 +13,8 @@
             <div
               v-for="j in agendados"
               :key="j.id"
-              class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden"
+              class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden cursor-pointer hover:shadow"
+              @click="openOverview(j)"
             >
               <div class="p-4">
                 <div class="flex items-center justify-between">
@@ -28,9 +29,9 @@
                 </div>
                 <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
-                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
-                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click="goGerir(j)">Gerir jogo</button>
-                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
+                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click.stop="goIniciar(j)">Iniciar</button>
+                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click.stop="remover(j)">Remover</button>
                 </div>
               </div>
             </div>
@@ -40,7 +41,7 @@
         <!-- Em andamento -->
         <div v-show="active === 1">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="j in emAndamento" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <div v-for="j in emAndamento" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden cursor-pointer hover:shadow" @click="openOverview(j)">
               <div class="p-4">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-3">
@@ -54,10 +55,9 @@
                 </div>
                 <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
-                  <button class="px-2 py-1 rounded bg-amber-600 text-white" @click="goGerir(j)">Gerir jogo</button>
-                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
-                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
-                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click="goGerir(j)">Gerir jogo</button>
+                  <button class="px-2 py-1 rounded bg-amber-600 text-white" @click.stop="goGerir(j)">Gerir jogo</button>
+                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
+                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click.stop="remover(j)">Remover</button>
                 </div>
               </div>
             </div>
@@ -67,7 +67,7 @@
         <!-- Finalizados -->
         <div v-show="active === 2">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="j in finalizados" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <div v-for="j in finalizados" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden cursor-pointer hover:shadow" @click="openOverview(j)">
               <div class="p-4">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-3">
@@ -83,8 +83,8 @@
                 <div class="mt-4 flex items-center justify-between">
                   <div class="text-2xl font-bold text-gray-900">{{ j.golsCasa != null && j.golsFora != null ? `${j.golsCasa}-${j.golsFora}` : '—' }}</div>
                   <div class="flex items-center gap-2 text-sm">
-                    <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
-                    <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                    <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
+                    <button class="px-2 py-1 rounded bg-red-600 text-white" @click.stop="remover(j)">Remover</button>
                   </div>
                 </div>
               </div>
@@ -95,7 +95,7 @@
         <!-- Cancelados -->
         <div v-show="active === 3">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="j in cancelados" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden">
+            <div v-for="j in cancelados" :key="j.id" class="rounded-lg bg-white border border-gray-200 shadow-sm overflow-hidden cursor-pointer hover:shadow" @click="openOverview(j)">
               <div class="p-4">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-3">
@@ -109,8 +109,8 @@
                 </div>
                 <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
-                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
-                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                  <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
+                  <button class="px-2 py-1 rounded bg-red-600 text-white" @click.stop="remover(j)">Remover</button>
                 </div>
               </div>
             </div>
@@ -119,6 +119,43 @@
       </template>
     </Tabs>
   </div>
+
+  <!-- Modal Overview do Jogo -->
+  <Modal :open="overviewOpen" title="Detalhes do Jogo" @close="closeOverview">
+    <div v-if="jogoOverview" class="space-y-3">
+      <div class="text-sm text-gray-700">
+        <div><span class="font-semibold">Adversário:</span> {{ jogoOverview.adversario }}</div>
+        <div><span class="font-semibold">Data:</span> {{ formatDate24(jogoOverview.dataHora) }}</div>
+        <div><span class="font-semibold">Estádio/Local:</span> {{ jogoOverview.local }}</div>
+        <div><span class="font-semibold">Estado:</span> {{ jogoOverview.estadoJogo }}</div>
+        <div v-if="jogoOverview.golsCasa != null && jogoOverview.golsFora != null"><span class="font-semibold">Resultado:</span> {{ jogoOverview.golsCasa }}-{{ jogoOverview.golsFora }}</div>
+      </div>
+      <div>
+        <h4 class="font-semibold text-gray-800 mb-1">Convocados</h4>
+        <div v-if="convOverview && convOverview.length" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div v-for="c in convOverview" :key="c.jogadorId" class="text-sm text-gray-700">
+            • {{ c.jogadorNome || ('#'+c.jogadorId) }} ({{ c.status }})<span v-if="c.posicaoProvavel"> — {{ c.posicaoProvavel }}</span>
+          </div>
+        </div>
+        <div v-else class="text-sm text-gray-500">Ainda não foram definidos convocados para este jogo.</div>
+      </div>
+      <div>
+        <h4 class="font-semibold text-gray-800 mb-1">Onze Inicial</h4>
+        <div v-if="onzeOverview && onzeOverview.length" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div v-for="c in onzeOverview" :key="c.jogadorId" class="text-sm text-gray-700">
+            • {{ c.jogadorNome || ('#'+c.jogadorId) }}
+          </div>
+        </div>
+        <div v-else class="text-sm text-gray-500">O onze inicial ainda não foi definido.</div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <button class="px-3 py-2 rounded bg-gray-200" @click="closeOverview">Fechar</button>
+        <button class="px-3 py-2 rounded bg-[var(--brand-green)] text-white" @click="goGerir(jogoOverview)">Gerir jogo</button>
+      </div>
+    </template>
+  </Modal>
 
   <Modal :open="modalOpen" :title="form.id ? 'Editar Jogo' : 'Novo Jogo'" @close="closeModal">
     <form class="grid grid-cols-1 md:grid-cols-2 gap-3" @submit.prevent="salvar">
@@ -664,6 +701,34 @@ function closeGerenciar() {
 }
 
 function goGerir(row: any) {
+  if (!row?.id) return
+  router.push(`/jogos/${row.id}/gerir`)
+}
+
+// Overview modal state
+const overviewOpen = ref(false)
+const jogoOverview = ref<any | null>(null)
+const convOverview = ref<any[] | null>(null)
+const onzeOverview = ref<any[] | null>(null)
+
+async function openOverview(row: any) {
+  jogoOverview.value = row
+  overviewOpen.value = true
+  try {
+    convOverview.value = await api.listarConvocados(row.id)
+    // Placeholder: onze inicial quando existir endpoint real; por enquanto, derivar dos convocados TITULAR
+    onzeOverview.value = (convOverview.value || []).filter((c: any) => c.status === 'TITULAR').slice(0, 11)
+  } catch (e) {
+    convOverview.value = []
+    onzeOverview.value = []
+  }
+}
+
+function closeOverview() {
+  overviewOpen.value = false
+}
+
+function goIniciar(row: any) {
   if (!row?.id) return
   router.push(`/jogos/${row.id}/gerir`)
 }

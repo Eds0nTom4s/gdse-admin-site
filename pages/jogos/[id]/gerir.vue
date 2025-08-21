@@ -19,60 +19,80 @@
     <Tabs v-model="tab" :tabs="tabs">
       <template #default="{ active }">
         <div v-show="active === 0" class="space-y-4">
-          <div class="text-sm text-gray-700">Defina os convocados para este jogo.</div>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-            <div>
-              <label class="block text-sm text-gray-700">Jogador</label>
-              <select v-model.number="novoConvocado.jogadorId" class="mt-1 w-full px-3 py-2 border rounded">
-                <option :value="undefined" disabled>Selecione</option>
-                <option v-for="j in jogadoresFiltrados" :key="j.id" :value="j.id">{{ j.nomeCompleto || j.nome }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-700">Status</label>
-              <select v-model="novoConvocado.status" class="mt-1 w-full px-3 py-2 border rounded">
-                <option value="TITULAR">TITULAR</option>
-                <option value="RESERVA">RESERVA</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-700">Posição provável</label>
-              <input v-model="novoConvocado.posicaoProvavel" type="text" class="mt-1 w-full px-3 py-2 border rounded" />
-            </div>
-            <div>
-              <label class="block text-sm text-gray-700">Pesquisar</label>
-              <input v-model="filtroJogador" type="text" placeholder="Nome ou número" class="mt-1 w-full px-3 py-2 border rounded" />
-            </div>
-            <div>
-              <button class="px-3 py-2 rounded bg-[var(--brand-green)] text-white disabled:opacity-50" :disabled="!novoConvocado.jogadorId || adicionando" @click="adicionarConvocado">Adicionar</button>
-            </div>
+          <div class="flex items-center justify-between text-sm text-gray-700">
+            <div>Defina os convocados para este jogo.</div>
+            <div class="text-gray-600">Convocados: <span class="font-semibold">{{ (convocados || []).length }}</span></div>
           </div>
-          <div class="space-y-2">
-            <div v-for="c in convocados || []" :key="c.jogadorId" class="flex items-center justify-between border rounded px-3 py-2">
-              <div class="text-sm flex items-center gap-3">
-                <span class="font-semibold">{{ c.jogadorNome || `#${c.jogadorId}` }}</span>
-                <select v-model="c.status" class="px-2 py-1 border rounded text-xs">
-                  <option value="TITULAR">TITULAR</option>
-                  <option value="RESERVA">RESERVA</option>
-                </select>
-                <input v-model="c.posicaoProvavel" placeholder="Posição provável" class="px-2 py-1 border rounded text-xs" />
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Coluna 1: Disponíveis -->
+            <div class="border rounded p-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Jogadores disponíveis</div>
+                <input v-model="filtroJogador" type="text" placeholder="Buscar por nome ou número" class="px-3 py-2 border rounded text-sm w-44" />
               </div>
-              <button class="px-2 py-1 rounded bg-red-600 text-white text-xs" @click="removerConvocado(c.jogadorId)">Remover</button>
+              <div class="space-y-1 max-h-96 overflow-auto">
+                <button
+                  v-for="p in disponiveisFiltrados"
+                  :key="p.id"
+                  type="button"
+                  class="w-full text-left px-3 py-2 border rounded hover:bg-[var(--brand-mint)]/30"
+                  @click="adicionarConvocadoDireto(p)"
+                >
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="truncate"><span class="text-gray-500">#{{ p.numero }}</span> — {{ p.nomeCompleto || p.nome }}</div>
+                    <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{{ p.posicao }}</span>
+                  </div>
+                </button>
+                <div v-if="!disponiveisFiltrados.length" class="text-sm text-gray-500">Nenhum jogador disponível com o filtro atual.</div>
+              </div>
             </div>
-          </div>
-          <div class="text-right">
-            <button class="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50" :disabled="salvando || !(convocados && convocados.length)" @click="salvarConvocados">Salvar convocados</button>
+
+            <!-- Coluna 2: Convocados (agrupados por posição) -->
+            <div class="border rounded p-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-semibold">Convocados</div>
+                <div class="text-xs text-gray-500">Clique para remover</div>
+              </div>
+              <div class="space-y-3 max-h-96 overflow-auto">
+                <div v-for="(lista, pos) in convocadosAgrupados" :key="pos">
+                  <div class="text-xs font-semibold text-gray-600 uppercase mb-1">{{ pos }} ({{ lista.length }})</div>
+                  <div class="space-y-1">
+                    <button
+                      v-for="c in lista"
+                      :key="c.jogadorId"
+                      type="button"
+                      class="w-full text-left px-3 py-2 border rounded hover:bg-red-50"
+                      @click="removerConvocado(c.jogadorId)"
+                    >
+                      <div class="flex items-center justify-between text-sm">
+                        <div class="truncate"><span class="text-gray-500">#{{ c.numero || '-' }}</span> — {{ c.jogadorNome || ('#'+c.jogadorId) }}</div>
+                        <span class="text-xs text-red-600">Remover</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                <div v-if="!(convocados && convocados.length)" class="text-sm text-gray-500">Nenhum jogador convocado ainda.</div>
+              </div>
+              <div class="text-right mt-3">
+                <button class="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50" :disabled="salvando || !(convocados && convocados.length)" @click="salvarConvocados">Salvar Convocados</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div v-show="active === 1" class="space-y-4">
           <div class="text-sm text-gray-700">Selecione o onze inicial a partir dos convocados.</div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md-grid-cols-2 md:grid-cols-2 gap-4">
             <div class="border rounded p-3">
               <div class="font-semibold mb-2">Disponíveis</div>
               <div class="space-y-2 max-h-80 overflow-auto">
                 <div v-for="c in disponiveis" :key="c.jogadorId" class="flex items-center justify-between border rounded px-3 py-2">
-                  <div class="text-sm">{{ c.jogadorNome || `#${c.jogadorId}` }}</div>
+                  <div class="text-sm truncate">
+                    <span class="text-gray-500 mr-1">#{{ c.numero || '-' }}</span>
+                    {{ c.jogadorNome || `#${c.jogadorId}` }}
+                    <span class="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{{ c.posicao || '—' }}</span>
+                  </div>
                   <button class="px-2 py-1 rounded bg-[var(--brand-green)] text-white text-xs" @click="adicionarAoOnze(c)">Adicionar</button>
                 </div>
               </div>
@@ -81,7 +101,11 @@
               <div class="font-semibold mb-2">Onze Inicial ({{ onze.length }}/11)</div>
               <div class="space-y-2 max-h-80 overflow-auto">
                 <div v-for="c in onze" :key="c.jogadorId" class="flex items-center justify-between border rounded px-3 py-2">
-                  <div class="text-sm">{{ c.jogadorNome || `#${c.jogadorId}` }}</div>
+                  <div class="text-sm truncate">
+                    <span class="text-gray-500 mr-1">#{{ c.numero || '-' }}</span>
+                    {{ c.jogadorNome || `#${c.jogadorId}` }}
+                    <span class="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{{ c.posicao || '—' }}</span>
+                  </div>
                   <button class="px-2 py-1 rounded bg-red-600 text-white text-xs" @click="removerDoOnze(c.jogadorId)">Remover</button>
                 </div>
               </div>
@@ -130,46 +154,88 @@ const badgeClass = computed(() => {
   return 'bg-gray-200 text-gray-600'
 })
 
+// Helpers
+function findJogadorById(id: number) {
+  return (jogadores.value || []).find((j: any) => j.id === id)
+}
+
 // Convocados
 const convocados = ref<any[] | null>(null)
 const filtroJogador = ref('')
-const novoConvocado = ref<any>({ jogadorId: undefined, status: 'TITULAR', posicaoProvavel: '' })
-const adicionando = ref(false)
 const salvando = ref(false)
+const onze = ref<any[]>([])
 
 async function carregarConvocados() {
-  convocados.value = await api.listarConvocados(id)
+  const list = await api.listarConvocados(id)
+  const mapped = (list || []).map((c: any) => {
+    const j = c.jogadorId ? findJogadorById(c.jogadorId) : null
+    return {
+      ...c,
+      jogadorNome: c.jogadorNome || j?.nomeCompleto || j?.nome,
+      posicao: c.posicao || j?.posicao,
+      numero: c.numero || j?.numero
+    }
+  })
+  convocados.value = mapped
+  // Pre-popular onze a partir dos convocados TITULARES (se houver)
+  onze.value = mapped.filter((c: any) => c.status === 'TITULAR')
 }
 await carregarConvocados()
 
-const jogadoresFiltrados = computed(() => {
+const disponiveisFiltrados = computed(() => {
   const query = (filtroJogador.value || '').toLowerCase().trim()
-  if (!query) return jogadores.value || []
-  return (jogadores.value || []).filter((j: any) => {
+  const convocadosIds = new Set((convocados.value || []).map(c => c.jogadorId))
+  const base = (jogadores.value || []).filter((j: any) => !convocadosIds.has(j.id))
+  if (!query) return base
+  return base.filter((j: any) => {
     const nome = (j.nomeCompleto || j.nome || '').toLowerCase()
     const numero = (j.numero != null ? String(j.numero) : '')
-    return nome.includes(query) || numero.includes(query)
+    const posicao = (j.posicao || '').toLowerCase()
+    return nome.includes(query) || numero.includes(query) || posicao.includes(query)
   })
 })
+
+const convocadosEnriquecidos = computed(() => {
+  return (convocados.value || []).map((c: any) => {
+    const j = findJogadorById(c.jogadorId)
+    return {
+      ...c,
+      jogadorNome: c.jogadorNome || j?.nomeCompleto || j?.nome,
+      posicao: c.posicao || j?.posicao,
+      numero: c.numero || j?.numero
+    }
+  })
+})
+
+const convocadosAgrupados = computed<Record<string, any[]>>(() => {
+  const groups: Record<string, any[]> = {}
+  for (const c of convocadosEnriquecidos.value) {
+    const pos = c.posicao || 'Sem posição'
+    if (!groups[pos]) groups[pos] = []
+    groups[pos].push(c)
+  }
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => (a.numero || 0) - (b.numero || 0))
+  }
+  return groups
+})
+
+function adicionarConvocadoDireto(p: any) {
+  const existe = (convocados.value || []).some(c => c.jogadorId === p.id)
+  if (existe) return
+  const item = { jogadorId: p.id, jogadorNome: p.nomeCompleto || p.nome, numero: p.numero, posicao: p.posicao, status: 'RESERVA' }
+  convocados.value = [...(convocados.value || []), item]
+}
 
 function removerConvocado(jogadorId: number) {
   if (!convocados.value) return
   convocados.value = convocados.value.filter(c => c.jogadorId !== jogadorId)
 }
 
-function adicionarConvocado() {
-  if (!novoConvocado.value.jogadorId) return
-  const existe = (convocados.value || []).some(c => c.jogadorId === novoConvocado.value.jogadorId)
-  if (existe) return
-  const item = { jogadorId: novoConvocado.value.jogadorId, status: novoConvocado.value.status, posicaoProvavel: novoConvocado.value.posicaoProvavel || undefined }
-  convocados.value = [...(convocados.value || []), item]
-  novoConvocado.value = { jogadorId: undefined, status: 'TITULAR', posicaoProvavel: '' }
-}
-
 async function salvarConvocados() {
   salvando.value = true
   try {
-    const payload = (convocados.value || []).map(c => ({ jogadorId: c.jogadorId, status: c.status, posicaoProvavel: c.posicaoProvavel || undefined }))
+    const payload = (convocados.value || []).map((c: any) => ({ jogadorId: c.jogadorId, status: c.status || 'RESERVA' }))
     await api.definirConvocados(id, payload)
     toast.success('Convocados salvos!')
   } catch (e: any) {
@@ -181,10 +247,9 @@ async function salvarConvocados() {
 }
 
 // Onze inicial
-const onze = ref<any[]>([])
 const disponiveis = computed(() => {
-  const setOnze = new Set(onze.value.map(o => o.jogadorId))
-  return (convocados.value || []).filter(c => !setOnze.has(c.jogadorId))
+  // Disponíveis para onze: convocados que NÃO são TITULARES
+  return convocadosEnriquecidos.value.filter(c => c.status !== 'TITULAR')
 })
 const salvandoOnze = ref(false)
 
@@ -200,13 +265,22 @@ function removerDoOnze(jogadorId: number) {
 
 async function salvarOnze() {
   if (onze.value.length !== 11) return
+  salvandoOnze.value = true
   try {
-    // Placeholder: definir endpoint quando disponível, p.ex. /api/jogos/{id}/onze
-    // await api.definirOnze(id, onze.value.map(o => o.jogadorId))
+    const titularIds = new Set(onze.value.map(o => o.jogadorId))
+    const payload = (convocados.value || []).map((c: any) => ({
+      jogadorId: c.jogadorId,
+      status: titularIds.has(c.jogadorId) ? 'TITULAR' : 'RESERVA',
+      posicaoProvavel: c.posicaoProvavel || undefined
+    }))
+    await api.definirConvocados(id, payload)
+    await carregarConvocados()
     toast.success('Onze inicial guardado!')
   } catch (e: any) {
     console.error(e)
     toast.error(getApiErrorMessage(e, 'Falha ao guardar onze'))
+  } finally {
+    salvandoOnze.value = false
   }
 }
 </script>
