@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type { JogadorResponseDTO, JogadorRequestDTO, Grupo } from '@/types/jogador'
 import { toastManager } from '@/utils/toast'
 import Toast from '@/components/Toast.vue'
@@ -58,7 +59,7 @@ function openCriarJogador() {
 function openEditarJogador(jogador: JogadorResponseDTO) {
   jogadorId.value = jogador.id
   // Extrair apenas o nome do arquivo da URL
-  const fotoUrl = jogador.fotoUrl.split('/').pop() || ''
+  const fotoUrl = (jogador.fotoUrl ?? '').split('/').pop() || ''
   Object.assign(jogadorForm, {
     nome: jogador.nome,
     numero: jogador.numero,
@@ -68,7 +69,7 @@ function openEditarJogador(jogador: JogadorResponseDTO) {
     fotoUrl: fotoUrl // Apenas o nome do arquivo
   })
   capaMidiaId.value = null
-  fotoPreview.value = jogador.fotoUrl
+  fotoPreview.value = jogador.fotoUrl || null
   jogadorModalOpen.value = true
 }
 
@@ -132,9 +133,9 @@ async function salvarJogador() {
     }
     await refreshJogadores()
     closeJogadorModal()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao salvar jogador:', error)
-    toastManager.error('Erro ao salvar jogador. Tente novamente.')
+    toastManager.error(getApiErrorMessage(error, 'Erro ao salvar jogador. Tente novamente.'))
   } finally {
     loadingJogador.value = false
   }
@@ -147,9 +148,9 @@ async function apagarJogador(id: number) {
     await api.apagarJogador(id)
     toastManager.success('Jogador removido com sucesso!')
     await refreshJogadores()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao apagar jogador:', error)
-    toastManager.error('Erro ao remover jogador. Tente novamente.')
+    toastManager.error(getApiErrorMessage(error, 'Erro ao remover jogador. Tente novamente.'))
   }
 }
 

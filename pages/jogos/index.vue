@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 max-w-7xl mx-auto px-4">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-semibold text-gray-900">Jogos</h2>
       <button class="px-4 py-2 rounded bg-[var(--brand-green)] text-white hover:opacity-90" @click="openCriar">Novo Jogo</button>
@@ -26,10 +26,10 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">Agendado</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
                   <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
-                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click="openGerenciar(j)">Convocados</button>
+                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click="goGerir(j)">Gerir jogo</button>
                   <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
                 </div>
               </div>
@@ -52,11 +52,12 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Ao vivo</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
-                  <button class="px-2 py-1 rounded bg-amber-600 text-white" @click="openGerenciar(j)">Eventos</button>
+                  <button class="px-2 py-1 rounded bg-amber-600 text-white" @click="goGerir(j)">Gerir jogo</button>
                   <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
                   <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
+                  <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click="goGerir(j)">Gerir jogo</button>
                 </div>
               </div>
             </div>
@@ -78,7 +79,7 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">Finalizado</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-4 flex items-center justify-between">
                   <div class="text-2xl font-bold text-gray-900">{{ j.golsCasa != null && j.golsFora != null ? `${j.golsCasa}-${j.golsFora}` : '—' }}</div>
                   <div class="flex items-center gap-2 text-sm">
@@ -106,7 +107,7 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">Cancelado</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
                   <button class="px-2 py-1 rounded bg-blue-600 text-white" @click="openEditar(j)">Editar</button>
                   <button class="px-2 py-1 rounded bg-red-600 text-white" @click="remover(j)">Remover</button>
@@ -146,7 +147,18 @@
       </div>
       <div>
         <label class="block text-sm text-gray-700">Data e Hora</label>
-        <input v-model="form.dataHora" type="datetime-local" step="60" required class="mt-1 w-full px-3 py-2 border rounded" />
+        <div class="grid grid-cols-2 gap-2">
+          <input v-model="dateField" type="date" required class="mt-1 w-full px-3 py-2 border rounded" />
+          <div class="mt-1 grid grid-cols-2 gap-2">
+            <select v-model="hoursField" class="w-full px-3 py-2 border rounded">
+              <option v-for="h in 24" :key="h" :value="String(h-1).padStart(2,'0')">{{ String(h-1).padStart(2,'0') }}</option>
+            </select>
+            <select v-model="minutesField" class="w-full px-3 py-2 border rounded">
+              <option v-for="m in [0,5,10,15,20,25,30,35,40,45,50,55]" :key="m" :value="String(m).padStart(2,'0')">{{ String(m).padStart(2,'0') }}</option>
+            </select>
+          </div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500">Formato 24h (HH:mm)</p>
       </div>
       <div>
         <label class="block text-sm text-gray-700">Jogo em casa?</label>
@@ -178,7 +190,7 @@
     <div v-if="jogoAtual" class="space-y-4">
       <div class="text-sm text-gray-600">
         <div><span class="font-semibold">Adversário:</span> {{ jogoAtual.adversario }}</div>
-        <div><span class="font-semibold">Data:</span> {{ formatDate(jogoAtual.dataHora) }}</div>
+        <div><span class="font-semibold">Data:</span> {{ formatDate24(jogoAtual.dataHora) }}</div>
         <div><span class="font-semibold">Local:</span> {{ jogoAtual.local }}</div>
         <div><span class="font-semibold">Estado:</span> {{ jogoAtual.estadoJogo || '—' }}</div>
       </div>
@@ -300,8 +312,10 @@ import { computed, ref, watch } from 'vue'
 import Tabs from '@/components/Tabs.vue'
 import { useApi } from '@/services/api'
 import { toastManager } from '@/utils/toast'
+import { getApiErrorMessage } from '@/utils/error'
 
 const api = useApi()
+const router = useRouter()
 const toast = toastManager
 
 const activeTab = ref(0)
@@ -324,10 +338,10 @@ function sortByDateDesc(a: any, b: any) {
   return new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
 }
 
-function formatDate(iso?: string) {
+function formatDate24(iso?: string) {
   if (!iso) return '—'
   const d = new Date(iso)
-  return d.toLocaleString()
+  return d.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 const modalOpen = ref(false)
@@ -342,6 +356,50 @@ const form = ref<any>({
   emCasa: false,
   logotipoAdversario: ''
 })
+
+// Campos separados para data e hora (24h)
+const dateField = ref<string>('')
+const hoursField = ref<string>('00')
+const minutesField = ref<string>('00')
+
+function updateFormDataHoraFromFields() {
+  if (dateField.value) {
+    const [year, month, day] = dateField.value.split('-').map(Number)
+    const hour = Number(hoursField.value || '0')
+    const minute = Number(minutesField.value || '0')
+    const d = new Date()
+    d.setFullYear(year)
+    d.setMonth(month - 1)
+    d.setDate(day)
+    d.setHours(hour)
+    d.setMinutes(minute)
+    d.setSeconds(0)
+    d.setMilliseconds(0)
+    form.value.dataHora = d.toISOString()
+  } else {
+    form.value.dataHora = ''
+  }
+}
+
+watch([dateField, hoursField, minutesField], updateFormDataHoraFromFields)
+
+watch(() => form.value.dataHora, (iso) => {
+  if (!iso) {
+    dateField.value = ''
+    hoursField.value = '00'
+    minutesField.value = '00'
+    return
+  }
+  const d = new Date(iso)
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  dateField.value = `${yyyy}-${mm}-${dd}`
+  hoursField.value = hh
+  minutesField.value = mi
+}, { immediate: true })
 
 // Upload logo adversário
 const logoInput = ref<HTMLInputElement | null>(null)
@@ -362,9 +420,9 @@ async function onLogoChange(e: Event) {
     // Espera-se que backend retorne { url }
     form.value.logotipoAdversario = resp?.url || resp
     logoPreview.value = form.value.logotipoAdversario
-  } catch (err) {
+  } catch (err: any) {
     console.error(err)
-    toast.error('Falha ao carregar logotipo.')
+    toast.error(getApiErrorMessage(err, 'Falha ao carregar logotipo.'))
   } finally {
     uploadingLogo.value = false
     if (logoInput.value) logoInput.value.value = ''
@@ -401,7 +459,7 @@ function openEditar(row: any) {
     grupoId: row.grupo?.id,
     adversario: row.adversario,
     local: row.local,
-    dataHora: (row.dataHora || row.data)?.slice(0, 16),
+    dataHora: (row.dataHora || row.data) || '',
     emCasa: !!row.emCasa,
     logotipoAdversario: row.logotipoAdversario || ''
   }
@@ -438,9 +496,9 @@ async function salvar() {
     modalOpen.value = false
     logoPreview.value = null
     if (logoInput.value) logoInput.value.value = ''
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao salvar jogo:', error)
-    toast.error('Erro ao salvar jogo. Verifique os dados e tente novamente.')
+    toast.error(getApiErrorMessage(error, 'Erro ao salvar jogo. Verifique os dados e tente novamente.'))
   } finally {
     loading.value = false
   }
@@ -452,9 +510,9 @@ async function remover(row: any) {
     await api.apagarJogo(row.id)
     toast.success('Jogo removido com sucesso!')
     await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao remover jogo:', error)
-    toast.error('Não foi possível remover o jogo.')
+    toast.error(getApiErrorMessage(error, 'Não foi possível remover o jogo.'))
   }
 }
 
@@ -489,9 +547,9 @@ async function alterarEstado() {
     toast.success('Estado atualizado!')
     await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
     gerenciarTab.value = 0
-  } catch (e) {
+  } catch (e: any) {
     console.error(e)
-    toast.error('Falha ao alterar estado')
+    toast.error(getApiErrorMessage(e, 'Falha ao alterar estado'))
   } finally {
     alterandoEstado.value = false
   }
@@ -505,9 +563,9 @@ async function finalizarJogo() {
     jogoAtual.value = updated
     toast.success('Jogo finalizado!')
     await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
-  } catch (e) {
+  } catch (e: any) {
     console.error(e)
-    toast.error('Falha ao finalizar jogo')
+    toast.error(getApiErrorMessage(e, 'Falha ao finalizar jogo'))
   } finally {
     finalizandoJogo.value = false
   }
@@ -535,9 +593,9 @@ async function adicionarEvento() {
     toast.success('Evento registado!')
     await carregarEventos()
     novoEvento.value = { tipo: 'INICIO_JOGO', minuto: 0, lado: 'CASA', jogadorId: undefined, observacao: '' }
-  } catch (e) {
+  } catch (e: any) {
     console.error(e)
-    toast.error('Falha ao registar evento')
+    toast.error(getApiErrorMessage(e, 'Falha ao registar evento'))
   } finally {
     enviandoEvento.value = false
   }
@@ -585,9 +643,9 @@ async function salvarConvocados() {
     const payload = (convocados.value || []).map(c => ({ jogadorId: c.jogadorId, status: c.status, posicaoProvavel: c.posicaoProvavel || undefined }))
     await api.definirConvocados(jogoAtual.value.id, payload)
     toast.success('Convocados atualizados!')
-  } catch (e) {
+  } catch (e: any) {
     console.error(e)
-    toast.error('Falha ao salvar convocados')
+    toast.error(getApiErrorMessage(e, 'Falha ao salvar convocados'))
   } finally {
     salvandoConvocados.value = false
   }
@@ -603,5 +661,10 @@ function openGerenciar(row: any) {
 
 function closeGerenciar() {
   gerenciarOpen.value = false
+}
+
+function goGerir(row: any) {
+  if (!row?.id) return
+  router.push(`/jogos/${row.id}/gerir`)
 }
 </script>
