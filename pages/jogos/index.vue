@@ -350,6 +350,7 @@ import Tabs from '@/components/Tabs.vue'
 import { useApi } from '@/services/api'
 import { toastManager } from '@/utils/toast'
 import { getApiErrorMessage } from '@/utils/error'
+import { formatDateForBackend, formatDateForDisplay } from '@/utils/date'
 
 const api = useApi()
 const router = useRouter()
@@ -518,7 +519,7 @@ async function salvar() {
       grupoId: form.value.grupoId,
       adversario: form.value.adversario,
       local: form.value.local,
-      dataHora: form.value.dataHora ? new Date(form.value.dataHora).toISOString() : undefined,
+      dataHora: form.value.dataHora ? formatDateForBackend(form.value.dataHora, false) : undefined,
       emCasa: !!form.value.emCasa,
       logotipoAdversario: form.value.logotipoAdversario || undefined
     }
