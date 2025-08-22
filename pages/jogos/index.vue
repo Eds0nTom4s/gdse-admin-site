@@ -703,7 +703,12 @@ function closeGerenciar() {
 
 function goGerir(row: any) {
   if (!row?.id) return
-  router.push(`/jogos/${row.id}/gerir`)
+  // Se o jogo está em andamento, redirecionar para a página ao-vivo
+  if (row.estadoJogo === 'EM_ANDAMENTO') {
+    router.push(`/jogos/${row.id}/ao-vivo`)
+  } else {
+    router.push(`/jogos/${row.id}/gerir`)
+  }
 }
 
 // Overview modal state
@@ -729,8 +734,31 @@ function closeOverview() {
   overviewOpen.value = false
 }
 
-function goIniciar(row: any) {
+async function goIniciar(row: any) {
   if (!row?.id) return
-  router.push(`/jogos/${row.id}/gerir`)
+  
+  try {
+    // Verificar se o onze inicial está definido
+    const convocados = await api.listarConvocados(row.id)
+    const titulares = (convocados || []).filter((c: any) => c.status === 'TITULAR')
+    
+    if (titulares.length !== 11) {
+      toast.error('Para iniciar o jogo é necessário definir o onze inicial (11 jogadores titulares).')
+      router.push(`/jogos/${row.id}/gerir`)
+      return
+    }
+    
+    // Confirmar transição de estado
+    if (confirm('Tem certeza que deseja iniciar este jogo? O estado será alterado para "EM_ANDAMENTO".')) {
+      await api.alterarEstadoJogo(row.id, { estado: 'EM_ANDAMENTO' })
+      toast.success('Jogo iniciado com sucesso!')
+      await useAsyncData('jogos:todos', () => api.listJogos(), { server: false })
+      // Redirecionar para a página de gestão do jogo em andamento
+      router.push(`/jogos/${row.id}/ao-vivo`)
+    }
+  } catch (error: any) {
+    console.error('Erro ao iniciar jogo:', error)
+    toast.error(getApiErrorMessage(error, 'Erro ao iniciar o jogo. Verifique se o onze inicial está definido.'))
+  }
 }
 </script>
