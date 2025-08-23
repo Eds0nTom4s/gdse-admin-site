@@ -41,7 +41,10 @@
                 {{ placar.casa }} - {{ placar.fora }}
               </div>
               <div class="text-lg opacity-90">
-                {{ tempoJogo }}'
+                {{ tempoJogoFormatado }}
+              </div>
+              <div class="text-sm opacity-75 mt-1">
+                {{ statusJogo }}
               </div>
             </div>
 
@@ -185,6 +188,33 @@
             </div>
           </div>
 
+          <!-- Controle do Timer -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Controle do Jogo</h3>
+            <div class="space-y-3">
+              <button 
+                @click="abrirModalSubstituicao" 
+                class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                🔄 Nova Substituição
+              </button>
+              <button 
+                v-if="!jogoEmIntervalo" 
+                @click="pausarTimer" 
+                class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+              >
+                ⏸️ Pausar Timer
+              </button>
+              <button 
+                v-else 
+                @click="retomarTimer" 
+                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                ▶️ Retomar Timer
+              </button>
+            </div>
+          </div>
+
           <!-- Ações Rápidas -->
           <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold mb-4">Ações</h3>
@@ -208,6 +238,66 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal de Substituição -->
+    <Modal :open="modalSubstituicao" title="Nova Substituição" @close="modalSubstituicao = false">
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Minuto</label>
+            <input v-model.number="substituicao.minuto" type="number" min="0" max="130" class="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Equipa</label>
+            <select v-model="substituicao.lado" class="w-full px-3 py-2 border rounded-md">
+              <option value="CASA">{{ clube?.nomeCompleto || 'Casa' }}</option>
+              <option value="FORA">{{ jogo?.adversario || 'Fora' }}</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jogador que sai</label>
+            <select v-model.number="substituicao.jogadorSai" class="w-full px-3 py-2 border rounded-md">
+              <option :value="undefined">Selecione</option>
+              <option v-for="jogador in jogadoresEmCampo" :key="jogador.jogadorId" :value="jogador.jogadorId">
+                #{{ jogador.numero || '-' }} {{ jogador.jogadorNome || `Jogador ${jogador.jogadorId}` }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jogador que entra</label>
+            <select v-model.number="substituicao.jogadorEntra" class="w-full px-3 py-2 border rounded-md">
+              <option :value="undefined">Selecione</option>
+              <option v-for="jogador in jogadoresReserva" :key="jogador.jogadorId" :value="jogador.jogadorId">
+                #{{ jogador.numero || '-' }} {{ jogador.jogadorNome || `Jogador ${jogador.jogadorId}` }}
+              </option>
+            </select>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Observação (opcional)</label>
+          <input v-model="substituicao.observacao" type="text" placeholder="Motivo da substituição" class="w-full px-3 py-2 border rounded-md" />
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button @click="modalSubstituicao = false" class="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button 
+            @click="processarSubstituicao" 
+            :disabled="processandoSubstituicao || !substituicao.jogadorSai || !substituicao.jogadorEntra"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ processandoSubstituicao ? 'Processando...' : 'Registrar Substituição' }}
+          </button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -244,6 +334,12 @@ const convocados = ref<any[]>([])
 const tempoJogo = ref(0)
 const atualizandoDados = ref(false)
 const finalizandoJogo = ref(false)
+
+// Timer do jogo
+const timerIniciado = ref<Date | null>(null)
+const tempoRealJogo = ref(0)
+const jogoEmIntervalo = ref(false)
+const tempoIntervalo = ref(0)
 
 // Novo evento
 const novoEvento = ref({
@@ -318,7 +414,7 @@ const eventosOrdenados = computed(() => {
 })
 
 const jogadoresDisponiveis = computed(() => {
-  const convocadosIds = new Set(convocados.value.map(c => c.jogadorId))
+  const convocadosIds = new Set(convocados.value.map((c: any) => c.jogadorId))
   return (jogadores.value || []).filter((j: any) => convocadosIds.has(j.id))
 })
 
@@ -349,6 +445,37 @@ const estatisticas = computed(() => {
   })
   
   return stats
+})
+
+// Timer e status do jogo
+const tempoJogoFormatado = computed(() => {
+  if (tempoRealJogo.value > 0) {
+    return `${tempoRealJogo.value}'`
+  }
+  return `${tempoJogo.value}'`
+})
+
+const statusJogo = computed(() => {
+  if (jogoEmIntervalo.value) {
+    return 'Intervalo'
+  }
+  
+  const eventoIntervalo = eventos.value.find(e => e.tipo === 'INTERVALO')
+  const eventoInicio = eventos.value.find(e => e.tipo === 'INICIO_JOGO')
+  
+  if (eventoIntervalo && !eventoInicio) {
+    return 'Intervalo'
+  }
+  
+  if (tempoRealJogo.value > 45 && tempoRealJogo.value <= 90) {
+    return '2º Tempo'
+  }
+  
+  if (tempoRealJogo.value > 90) {
+    return 'Acréscimos'
+  }
+  
+  return '1º Tempo'
 })
 
 // Funções
@@ -430,22 +557,154 @@ async function atualizarDados() {
   }
 }
 
+// Timer em tempo real
+let timerIntervalId: NodeJS.Timeout | null = null
+
+function iniciarTimer() {
+  // Verificar se já existe um evento de início
+  const eventoInicio = eventos.value.find(e => e.tipo === 'INICIO_JOGO')
+  if (eventoInicio) {
+    // Calcular tempo baseado no timestamp do evento de início
+    timerIniciado.value = new Date(eventoInicio.timestamp || Date.now())
+  } else {
+    // Iniciar timer agora
+    timerIniciado.value = new Date()
+  }
+  
+  // Atualizar timer a cada segundo
+  timerIntervalId = setInterval(() => {
+    if (timerIniciado.value && !jogoEmIntervalo.value) {
+      const agora = new Date()
+      const diferenca = agora.getTime() - timerIniciado.value.getTime()
+      tempoRealJogo.value = Math.floor(diferenca / 60000) // Converter para minutos
+      
+      // Atualizar o minuto sugerido para novos eventos
+      novoEvento.value.minuto = tempoRealJogo.value
+    }
+  }, 1000)
+}
+
+function pausarTimer() {
+  jogoEmIntervalo.value = true
+}
+
+function retomarTimer() {
+  jogoEmIntervalo.value = false
+}
+
+// Gestão de substituições
+const modalSubstituicao = ref(false)
+const substituicao = ref({
+  minuto: 0,
+  lado: 'CASA',
+  jogadorSai: undefined as number | undefined,
+  jogadorEntra: undefined as number | undefined,
+  observacao: ''
+})
+const processandoSubstituicao = ref(false)
+
+const jogadoresEmCampo = computed(() => {
+  // Jogadores titulares menos os que saíram por substituição
+  const substituicoes = eventos.value.filter(e => e.tipo === 'SUBSTITUICAO')
+  const jogadoresSairam = new Set(substituicoes.map(s => s.jogadorId).filter(Boolean))
+  
+  return convocados.value.filter(c => 
+    c.status === 'TITULAR' && !jogadoresSairam.has(c.jogadorId)
+  )
+})
+
+const jogadoresReserva = computed(() => {
+  // Jogadores reservas menos os que já entraram
+  const substituicoes = eventos.value.filter(e => e.tipo === 'SUBSTITUICAO')
+  const jogadoresEntraram = new Set()
+  
+  substituicoes.forEach(s => {
+    if (s.observacao) {
+      // Extrair ID do jogador que entrou da observação
+      const match = s.observacao.match(/entra:?\s*(\d+)/)
+      if (match) {
+        jogadoresEntraram.add(parseInt(match[1]))
+      }
+    }
+  })
+  
+  return convocados.value.filter(c => 
+    c.status === 'RESERVA' && !jogadoresEntraram.has(c.jogadorId)
+  )
+})
+
+function abrirModalSubstituicao() {
+  substituicao.value = {
+    minuto: tempoRealJogo.value || tempoJogo.value,
+    lado: 'CASA',
+    jogadorSai: undefined,
+    jogadorEntra: undefined,
+    observacao: ''
+  }
+  modalSubstituicao.value = true
+}
+
+async function processarSubstituicao() {
+  if (!substituicao.value.jogadorSai || !substituicao.value.jogadorEntra) {
+    toast.error('Selecione os jogadores que saem e entram')
+    return
+  }
+  
+  processandoSubstituicao.value = true
+  try {
+    // Buscar nomes dos jogadores
+    const jogadorSai = jogadores.value?.find(j => j.id === substituicao.value.jogadorSai)
+    const jogadorEntra = jogadores.value?.find(j => j.id === substituicao.value.jogadorEntra)
+    
+    const observacao = `${jogadorSai?.nomeCompleto || jogadorSai?.nome || `#${substituicao.value.jogadorSai}`} sai, ${jogadorEntra?.nomeCompleto || jogadorEntra?.nome || `#${substituicao.value.jogadorEntra}`} entra`
+    
+    // Registrar evento de substituição
+    const payload = {
+      tipo: 'SUBSTITUICAO',
+      minuto: substituicao.value.minuto,
+      lado: substituicao.value.lado,
+      jogadorId: substituicao.value.jogadorSai,
+      observacao: observacao
+    }
+    
+    await api.registrarEventoJogo(id, payload)
+    toast.success('Substituição registrada!')
+    
+    // Recarregar dados
+    await carregarDados()
+    
+    // Fechar modal
+    modalSubstituicao.value = false
+  } catch (error: any) {
+    console.error('Erro ao processar substituição:', error)
+    toast.error(getApiErrorMessage(error, 'Erro ao registrar substituição'))
+  } finally {
+    processandoSubstituicao.value = false
+  }
+}
+
 // Atualização automática
 let intervalId: NodeJS.Timeout | null = null
 
 onMounted(async () => {
   await carregarDados()
   
+  // Iniciar timer
+  iniciarTimer()
+  
   // Atualizar dados a cada 30 segundos
   intervalId = setInterval(carregarDados, 30000)
   
   // Definir minuto inicial baseado no tempo atual
-  novoEvento.value.minuto = tempoJogo.value
+  novoEvento.value.minuto = tempoRealJogo.value || tempoJogo.value
 })
 
 onUnmounted(() => {
   if (intervalId) {
     clearInterval(intervalId)
+  }
+  if (timerIntervalId) {
+    clearInterval(timerIntervalId)
   }
 })
 </script>

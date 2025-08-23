@@ -137,6 +137,11 @@ const id = route.params.id as string
 const { data: jogo } = await useAsyncData(`jogos:gerir:${id}`, () => api.getJogo(id))
 const { data: jogadores } = await useAsyncData('jogos:gerir:jogadores', () => api.listJogadores())
 
+// Verificar se o jogo está finalizado e redirecionar para relatório
+if (jogo.value?.estadoJogo === 'FINALIZADO') {
+  router.push(`/jogos/${id}/relatorio`)
+}
+
 const tab = ref(0)
 const tabs = computed(() => ['Convocados', 'Onze Inicial'])
 
@@ -284,5 +289,3 @@ async function salvarOnze() {
   }
 }
 </script>
-
-

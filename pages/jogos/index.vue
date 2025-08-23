@@ -706,6 +706,9 @@ function goGerir(row: any) {
   // Se o jogo está em andamento, redirecionar para a página ao-vivo
   if (row.estadoJogo === 'EM_ANDAMENTO') {
     router.push(`/jogos/${row.id}/ao-vivo`)
+  } else if (row.estadoJogo === 'FINALIZADO') {
+    // Redirecionar para relatório do jogo (somente leitura)
+    router.push(`/jogos/${row.id}/relatorio`)
   } else {
     router.push(`/jogos/${row.id}/gerir`)
   }
