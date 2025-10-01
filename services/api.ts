@@ -34,7 +34,43 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 const useMockData = false
 
 export function createApiClient(baseURL: string) {
-  const client = ofetch.create({ baseURL })
+  // Criar cliente com configuração de autenticação
+  const client = ofetch.create({ 
+    baseURL,
+    credentials: 'include', // Incluir cookies de sessão automaticamente
+    onResponseError({ response }) {
+      // Tratar erros de autenticação/autorização
+      if (response.status === 401) {
+        // Sessão expirou - redirecionar para login
+        console.warn('Sessão expirada, redirecionando para login')
+        
+        // No cliente, usar navigateTo
+        if (process.client) {
+          const router = useRouter()
+          const route = useRoute()
+          
+          // Limpar estado de autenticação
+          const { logout } = useAuth()
+          logout()
+          
+          // Redirecionar com query parameter para voltar após login
+          const redirectUrl = route.path !== '/login' ? `?redirect=${encodeURIComponent(route.path)}` : ''
+          router.push(`/login${redirectUrl}`)
+        }
+      } else if (response.status === 403) {
+        console.warn('Acesso negado:', response.statusText)
+        
+        // Mostrar toast de erro se disponível
+        if (process.client) {
+          const { showToast } = useToast()
+          showToast('Você não tem permissão para realizar esta ação', 'error')
+        }
+      }
+    },
+    onRequestError({ error }) {
+      console.error('Erro na requisição:', error)
+    }
+  })
 
   return {
     // Notícias

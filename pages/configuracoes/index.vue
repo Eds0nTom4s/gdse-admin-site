@@ -7,6 +7,11 @@ import type { ClubeRequestDTO } from '@/types'
 import { toastManager } from '@/utils/toast'
 import Toast from '@/components/Toast.vue'
 
+// Aplicar middleware de autenticação e autorização
+definePageMeta({
+  middleware: ['auth', 'role']
+})
+
 const api = useApi()
 const config = useRuntimeConfig()
 

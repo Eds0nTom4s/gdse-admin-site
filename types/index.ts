@@ -1,3 +1,6 @@
+// Exportar tipos de autenticação
+export type * from './auth.types'
+
 export interface Sede {
   cidade: string;
   provincia: string;

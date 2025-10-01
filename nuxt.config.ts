@@ -1,5 +1,8 @@
 // Nuxt 3 configuration
 export default defineNuxtConfig({
+  // Data de compatibilidade conforme recomendação
+  compatibilityDate: '2025-10-01',
+  
   modules: [
     '@nuxtjs/tailwindcss'
   ],
@@ -17,7 +20,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
+      environment: process.env.NODE_ENV || 'development'
     }
   },
   app: {
@@ -28,7 +32,7 @@ export default defineNuxtConfig({
       ]
     }
   },
-  // Configuração temporária para debugging
+  // Configuração para melhor performance
   ssr: true,
   nitro: {
     experimental: {
@@ -38,5 +42,16 @@ export default defineNuxtConfig({
   // Garantir auto-import de composables
   imports: {
     dirs: ['composables/**']
+  },
+  // Configuração do devtools para melhor performance
+  devtools: { 
+    enabled: true,
+    timeline: {
+      enabled: false // Desabilitar timeline para melhor performance
+    }
+  },
+  // Configuração de desenvolvimento
+  devServer: {
+    port: 3000
   }
 });
