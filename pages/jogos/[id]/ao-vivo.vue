@@ -26,12 +26,12 @@
             <!-- Equipa Casa -->
             <div class="flex items-center gap-4">
               <div class="text-right">
-                <div class="text-2xl font-bold">{{ clube?.nomeCompleto || 'Sagrada Esperança' }}</div>
+                <div class="text-2xl font-bold">{{ clube?.sigla || 'Sagrada Esperança' }}</div>
                 <div class="text-sm opacity-90">CASA</div>
               </div>
               <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                 <img v-if="clube?.logoUrl" :src="clube.logoUrl" alt="Logo Casa" class="w-12 h-12 object-contain" />
-                <div v-else class="text-green-600 font-bold text-lg">SE</div>
+                <div v-else class="text-green-600 font-bold text-lg">{{ clube?.sigla }}</div>
               </div>
             </div>
 
@@ -90,7 +90,7 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Equipa</label>
                 <select v-model="novoEvento.lado" class="w-full px-3 py-2 border rounded-md">
-                  <option value="CASA">{{ clube?.nomeCompleto || 'Casa' }}</option>
+                  <option value="CASA">{{ clube?.sigla || 'Casa' }}</option>
                   <option value="FORA">{{ jogo?.adversario || 'Fora' }}</option>
                 </select>
               </div>
@@ -132,7 +132,7 @@
                     <span class="font-medium">{{ getEventoLabel(evento.tipo) }}</span>
                     <span class="px-2 py-1 rounded text-xs" 
                           :class="evento.lado === 'CASA' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'">
-                      {{ evento.lado === 'CASA' ? (clube?.nomeCompleto || 'Casa') : (jogo?.adversario || 'Fora') }}
+                      {{ evento.lado === 'CASA' ? (clube?.sigla || 'Casa') : (jogo?.adversario || 'Fora') }}
                     </span>
                   </div>
                   <div v-if="evento.jogadorNome || evento.jogadorId" class="text-sm text-gray-600">
@@ -250,7 +250,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Equipa</label>
             <select v-model="substituicao.lado" class="w-full px-3 py-2 border rounded-md">
-              <option value="CASA">{{ clube?.nomeCompleto || 'Casa' }}</option>
+              <option value="CASA">{{ clube?.sigla || 'Casa' }}</option>
               <option value="FORA">{{ jogo?.adversario || 'Fora' }}</option>
             </select>
           </div>
@@ -509,8 +509,13 @@ async function adicionarEvento() {
     await api.registrarEventoJogo(id, payload)
     toast.success('Evento registrado!')
     
-    // Recarregar eventos
-    await carregarDados()
+    // Atualiza a UI localmente para reatividade imediata, sem esperar pelo refetch.
+    const jogador = jogadores.value?.find((j: any) => j.id === payload.jogadorId)
+    eventos.value.push({
+      ...payload,
+      id: `temp-${Date.now()}`, // ID temporário para a key do v-for
+      jogadorNome: jogador ? (jogador.nomeCompleto || jogador.nome) : undefined
+    })
     
     // Limpar formulário
     novoEvento.value = {
@@ -653,8 +658,8 @@ async function processarSubstituicao() {
   processandoSubstituicao.value = true
   try {
     // Buscar nomes dos jogadores
-    const jogadorSai = jogadores.value?.find(j => j.id === substituicao.value.jogadorSai)
-    const jogadorEntra = jogadores.value?.find(j => j.id === substituicao.value.jogadorEntra)
+    const jogadorSai = jogadores.value?.find((j: any) => j.id === substituicao.value.jogadorSai)
+    const jogadorEntra = jogadores.value?.find((j: any) => j.id === substituicao.value.jogadorEntra)
     
     const observacao = `${jogadorSai?.nomeCompleto || jogadorSai?.nome || `#${substituicao.value.jogadorSai}`} sai, ${jogadorEntra?.nomeCompleto || jogadorEntra?.nome || `#${substituicao.value.jogadorEntra}`} entra`
     

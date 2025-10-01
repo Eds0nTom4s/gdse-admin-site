@@ -27,7 +27,7 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">Agendado</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora || j.data) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
                   <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
                   <button class="px-2 py-1 rounded bg-emerald-600 text-white" @click.stop="goIniciar(j)">Iniciar</button>
@@ -53,7 +53,7 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Ao vivo</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora || j.data) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
                   <button class="px-2 py-1 rounded bg-amber-600 text-white" @click.stop="goGerir(j)">Gerir jogo</button>
                   <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
@@ -79,7 +79,7 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">Finalizado</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora || j.data) }} • {{ j.local }}</div>
                 <div class="mt-4 flex items-center justify-between">
                   <div class="text-2xl font-bold text-gray-900">{{ j.golsCasa != null && j.golsFora != null ? `${j.golsCasa}-${j.golsFora}` : '—' }}</div>
                   <div class="flex items-center gap-2 text-sm">
@@ -107,7 +107,7 @@
                   </div>
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-600">Cancelado</span>
                 </div>
-                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora) }} • {{ j.local }}</div>
+                <div class="mt-2 text-sm text-gray-600">{{ formatDate24(j.dataHora || j.data) }} • {{ j.local }}</div>
                 <div class="mt-3 flex items-center justify-end gap-2 text-sm">
                   <button class="px-2 py-1 rounded bg-blue-600 text-white" @click.stop="openEditar(j)">Editar</button>
                   <button class="px-2 py-1 rounded bg-red-600 text-white" @click.stop="remover(j)">Remover</button>
@@ -125,7 +125,7 @@
     <div v-if="jogoOverview" class="space-y-3">
       <div class="text-sm text-gray-700">
         <div><span class="font-semibold">Adversário:</span> {{ jogoOverview.adversario }}</div>
-        <div><span class="font-semibold">Data:</span> {{ formatDate24(jogoOverview.dataHora) }}</div>
+        <div><span class="font-semibold">Data:</span> {{ formatDate24(jogoOverview.dataHora || jogoOverview.data) }}</div>
         <div><span class="font-semibold">Estádio/Local:</span> {{ jogoOverview.local }}</div>
         <div><span class="font-semibold">Estado:</span> {{ jogoOverview.estadoJogo }}</div>
         <div v-if="jogoOverview.golsCasa != null && jogoOverview.golsFora != null"><span class="font-semibold">Resultado:</span> {{ jogoOverview.golsCasa }}-{{ jogoOverview.golsFora }}</div>
@@ -350,7 +350,7 @@ import Tabs from '@/components/Tabs.vue'
 import { useApi } from '@/services/api'
 import { toastManager } from '@/utils/toast'
 import { getApiErrorMessage } from '@/utils/error'
-import { formatDateForBackend, formatDateForDisplay } from '@/utils/date'
+import { formatDateForBackend, formatDateForDisplay, parseDateFromBackend } from '@/utils/date'
 
 const api = useApi()
 const router = useRouter()
@@ -376,10 +376,15 @@ function sortByDateDesc(a: any, b: any) {
   return new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime()
 }
 
-function formatDate24(iso?: string) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+function formatDate24(backendDateStr?: string) {
+  if (!backendDateStr) return '—'
+  try {
+    const d = parseDateFromBackend(backendDateStr)
+    return d.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+  } catch (error) {
+    console.error(`Error parsing date: ${backendDateStr}`, error)
+    return '—'
+  }
 }
 
 const modalOpen = ref(false)
