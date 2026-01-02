@@ -1,0 +1,143 @@
+ATUALIZAÇÃO DO BACKEND - CORS E PAGINAÇÃO ✅
+============================================
+
+Data: 02/01/2026
+
+Olá equipe de frontend,
+
+✅ CORS configurado com sucesso!
+✅ Nova funcionalidade de paginação implementada!
+
+---
+
+1. CORS CONFIGURADO E FUNCIONANDO
+==================================
+
+O CORS foi configurado no SecurityConfig.java para aceitar requisições de:
+
+✅ http://localhost:3000 (desenvolvimento local)
+✅ https://admin.gdse.ao (produção)
+✅ https://www.gdse.ao (site público)
+✅ https://gdse.ao (domínio principal)
+
+Configuração aplicada:
+- allowCredentials(true) - Suporta cookies de sessão
+- Métodos permitidos: GET, POST, PUT, DELETE, PATCH, OPTIONS
+- Headers: Authorization, Content-Type e todos os outros necessários
+
+O problema de CORS está RESOLVIDO! 🎉
+
+---
+
+2. NOVA FUNCIONALIDADE: PAGINAÇÃO DE JOGADORES
+===============================================
+
+⚠️ BREAKING CHANGE - Atualização necessária no frontend!
+
+O endpoint GET /api/jogadores agora retorna dados paginados.
+
+ANTES:
+------
+GET /api/jogadores
+Retornava: Array simples de jogadores
+
+AGORA:
+------
+GET /api/jogadores?page=1&size=8&sortBy=nome
+
+Parâmetros disponíveis:
+- page (opcional, padrão: 1) - Número da página
+- size (opcional, padrão: 8) - Itens por página
+- sortBy (opcional, padrão: "nome") - Campo para ordenação
+
+Formato da resposta:
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "nome": "João Silva",
+      "posicao": "Avançado",
+      ...
+    }
+  ],
+  "totalElements": 22,      // Total de jogadores no banco
+  "totalPages": 3,          // Total de páginas (22 / 8 = 3)
+  "size": 8,                // Itens por página
+  "number": 0,              // Número da página atual (0-indexed)
+  "first": true,            // É a primeira página?
+  "last": false,            // É a última página?
+  "empty": false            // Está vazio?
+}
+```
+
+Exemplos de uso:
+- /api/jogadores - Primeira página, 8 itens, ordenado por nome
+- /api/jogadores?page=2 - Segunda página
+- /api/jogadores?page=1&size=12 - Primeira página com 12 itens
+- /api/jogadores?sortBy=posicao - Ordenar por posição
+- /api/jogadores?page=2&size=10&sortBy=numero - Controle completo
+
+AÇÃO NECESSÁRIA NO FRONTEND:
+----------------------------
+1. Atualizar chamada da API para usar content em vez do array direto
+2. Implementar controles de paginação (botões próxima/anterior)
+3. Usar totalPages e number para navegação
+4. Considerar adicionar seletor de items por página (size)
+
+Exemplo de código React/TypeScript:
+```typescript
+interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+// Chamada da API
+const response = await fetch('/api/jogadores?page=1&size=8');
+const data: PaginatedResponse<Jogador> = await response.json();
+
+// Usar data.content para renderizar os jogadores
+const jogadores = data.content;
+const totalPages = data.totalPages;
+const currentPage = data.number + 1; // Converter de 0-indexed para 1-indexed
+```
+
+---
+
+3. STATUS DO BACKEND
+=====================
+
+✅ Spring Boot 3.4.13 (última versão estável)
+✅ CORS configurado para todos os ambientes
+✅ Paginação implementada e testada
+✅ Compilação bem-sucedida (134 arquivos)
+✅ Aplicação rodando em http://localhost:8080
+✅ Swagger UI disponível em /swagger-ui.html
+
+---
+
+4. PRÓXIMOS PASSOS
+==================
+
+Backend:
+- [ ] Deploy para produção (AWS EC2: 34.236.191.253)
+- [ ] Configurar PostgreSQL em produção
+- [ ] Configurar SSL/HTTPS
+
+Frontend:
+- [ ] Testar login com CORS corrigido
+- [ ] Atualizar componente de listagem de jogadores para usar paginação
+- [ ] Testar integração completa
+
+---
+
+Dúvidas ou problemas, entrem em contato!
+
+Equipe Backend
+02/01/2026

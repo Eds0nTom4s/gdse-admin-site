@@ -286,7 +286,14 @@ export function createApiClient(baseURL: string) {
     getLogoMetadata: () => client('/api/clube/logo'),
 
     // Jogadores
-    listJogadores: () => client('/api/jogadores'),
+    listJogadores: (page: number = 1, size: number = 8, sortBy: string = 'nome') => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString(),
+        sortBy
+      })
+      return client(`/api/jogadores?${params.toString()}`)
+    },
     getJogador: (id: number | string) => client(`/api/jogadores/${id}`),
     criarJogador: async (jogador: JogadorRequestDTO, foto?: File) => {
       if (foto) {

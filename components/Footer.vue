@@ -4,7 +4,8 @@
       <div class="py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
         <!-- Copyright -->
         <div class="text-sm text-gray-600 order-2 sm:order-1">
-          © {{ currentYear }} <span class="font-semibold text-[var(--brand-green)]">Grupo Desportivo Sagrada Esperança</span>. Todos os direitos reservados.
+          © {{ currentYear }} <span class="font-semibold text-[var(--brand-green)]">Grupo Desportivo Sagrada Esperança</span>. 
+          Desenvolvido por <span class="font-medium">Centraltec - Comércio e Serviços, Lda</span>. Todos os direitos reservados.
         </div>
         
         <!-- Links -->

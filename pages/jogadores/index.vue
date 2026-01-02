@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useApi } from '@/services/api'
 import { getApiErrorMessage } from '@/utils/error'
-import type { JogadorResponseDTO, JogadorRequestDTO, Grupo } from '@/types/jogador'
+import type { JogadorResponseDTO, JogadorRequestDTO, Grupo, PaginatedJogadoresResponse } from '@/types/jogador'
 import { toastManager } from '@/utils/toast'
 import Toast from '@/components/Toast.vue'
 import DataTable from '@/components/DataTable.vue'
@@ -10,9 +10,17 @@ import Modal from '@/components/Modal.vue'
 
 const api = useApi()
 
+// Estado de paginação
+const currentPage = ref(1)
+const pageSize = ref(8)
+const sortBy = ref('nome')
+const totalPages = ref(0)
+const totalElements = ref(0)
+
 // Estado
 const jogadorModalOpen = ref(false)
 const loadingJogador = ref(false)
+const loadingJogadores = ref(false)
 // Capa via Galeria
 const fotoFile = ref<File | null>(null) // deprecado
 const fotoPreview = ref<string | null>(null)
@@ -23,8 +31,55 @@ const carregandoGaleria = ref(false)
 const erroGaleria = ref<string | null>(null)
 
 // Dados
-const { data: jogadores, refresh: refreshJogadores } = await useAsyncData('jogadores', () => api.listJogadores())
+const jogadores = ref<JogadorResponseDTO[]>([])
 const { data: grupos } = await useAsyncData('grupos', () => api.listGrupos())
+
+// Carregar jogadores com paginação
+async function loadJogadores() {
+  loadingJogadores.value = true
+  try {
+    const response: PaginatedJogadoresResponse = await api.listJogadores(currentPage.value, pageSize.value, sortBy.value)
+    jogadores.value = response.content
+    totalPages.value = response.totalPages
+    totalElements.value = response.totalElements
+  } catch (error: any) {
+    console.error('Erro ao carregar jogadores:', error)
+    toastManager.error(getApiErrorMessage(error, 'Erro ao carregar jogadores'))
+  } finally {
+    loadingJogadores.value = false
+  }
+}
+
+// Navegação de paginação
+async function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    await loadJogadores()
+  }
+}
+
+async function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    await loadJogadores()
+  }
+}
+
+async function goToPage(page: number) {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    await loadJogadores()
+  }
+}
+
+// Computeds para paginação
+const isFirstPage = computed(() => currentPage.value === 1)
+const isLastPage = computed(() => currentPage.value === totalPages.value)
+const startIndex = computed(() => (currentPage.value - 1) * pageSize.value + 1)
+const endIndex = computed(() => Math.min(currentPage.value * pageSize.value, totalElements.value))
+
+// Carregar dados iniciais
+await loadJogadores()
 
 // Form
 interface JogadorFormData extends JogadorRequestDTO {
@@ -131,7 +186,7 @@ async function salvarJogador() {
       await api.criarJogador(payload)
       toastManager.success('Jogador criado com sucesso!')
     }
-    await refreshJogadores()
+    await loadJogadores()
     closeJogadorModal()
   } catch (error: any) {
     console.error('Erro ao salvar jogador:', error)
@@ -147,7 +202,7 @@ async function apagarJogador(id: number) {
   try {
     await api.apagarJogador(id)
     toastManager.success('Jogador removido com sucesso!')
-    await refreshJogadores()
+    await loadJogadores()
   } catch (error: any) {
     console.error('Erro ao apagar jogador:', error)
     toastManager.error(getApiErrorMessage(error, 'Erro ao remover jogador. Tente novamente.'))
@@ -181,10 +236,16 @@ const posicoes = [
     </div>
 
     <DataTable
-      :headers="['Foto', 'Nome', 'Número', 'Posição', 'Grupo', 'Status', 'Ações']"
-      :keys="['fotoUrl', 'nome', 'numero', 'posicao', 'grupo', 'ativo', 'acoes']"
+      :headers="['#', 'Foto', 'Nome', 'Número', 'Posição', 'Grupo', 'Status', 'Ações']"
+      :keys="['index', 'fotoUrl', 'nome', 'numero', 'posicao', 'grupo', 'ativo', 'acoes']"
       :rows="jogadores || []"
     >
+      <template #cell:index="{ row }">
+        <span class="font-semibold text-gray-600">
+          {{ startIndex + jogadores.indexOf(row) }}
+        </span>
+      </template>
+
       <template #cell:fotoUrl="{ row }">
         <img 
           :src="row.fotoUrl" 
@@ -236,6 +297,58 @@ const posicoes = [
         </div>
       </template>
     </DataTable>
+
+    <!-- Paginação -->
+    <div v-if="totalPages > 1" class="bg-white rounded-lg shadow p-4">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- Info de registros -->
+        <div class="text-sm text-gray-600">
+          Mostrando <span class="font-semibold">{{ startIndex }}</span> a <span class="font-semibold">{{ endIndex }}</span> 
+          de <span class="font-semibold">{{ totalElements }}</span> jogadores
+        </div>
+
+        <!-- Controles de paginação -->
+        <div class="flex items-center gap-2">
+          <button
+            @click="prevPage"
+            :disabled="isFirstPage"
+            class="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Anterior
+          </button>
+
+          <!-- Números de página -->
+          <div class="flex gap-1">
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              @click="goToPage(page)"
+              :class="[
+                'px-3 py-2 border rounded-md text-sm font-medium',
+                page === currentPage
+                  ? 'bg-[var(--brand-green)] text-white border-[var(--brand-green)]'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              ]"
+            >
+              {{ page }}
+            </button>
+          </div>
+
+          <button
+            @click="nextPage"
+            :disabled="isLastPage"
+            class="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Próxima
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div v-if="loadingJogadores" class="flex justify-center py-8">
+      <LoadingSpinner size="lg" text="Carregando jogadores..." />
+    </div>
 
     <!-- Modal de Criar/Editar Jogador -->
     <Modal 

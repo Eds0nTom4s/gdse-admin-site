@@ -28,3 +28,16 @@ export interface JogadorRequestDTO {
   ativo: boolean;
   fotoUrl?: string; // Nome do arquivo, sem a URL completa
 }
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number; // 0-indexed
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+export type PaginatedJogadoresResponse = PaginatedResponse<JogadorResponseDTO>
