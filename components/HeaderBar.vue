@@ -2,8 +2,14 @@
   <header class="sticky top-0 z-40 bg-white border-b border-gray-200">
     <div class="mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <button class="md:hidden p-2 rounded hover:bg-gray-100" @click="$emit('toggle-sidebar')" aria-label="Alternar menu">
-          <span class="i">☰</span>
+        <button 
+          class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors" 
+          @click="$emit('toggle-sidebar')" 
+          aria-label="Alternar menu"
+        >
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
         </button>
         <div class="flex items-center gap-2">
           <div class="w-2 h-6 bg-[var(--brand-green)] rounded"></div>
@@ -140,6 +146,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import type { UserRole } from '~/types/auth.types'
 
 // Emits
@@ -224,14 +231,14 @@ const handleRefreshUser = async (): Promise<void> => {
     await refreshUser()
     
     // Mostrar toast de sucesso se disponível
-    if (process.client) {
+    if (typeof window !== 'undefined') {
       const { showToast } = useToast()
       showToast('Dados atualizados com sucesso', 'success')
     }
   } catch (error) {
     console.error('Erro ao atualizar dados do usuário:', error)
     
-    if (process.client) {
+    if (typeof window !== 'undefined') {
       const { showToast } = useToast()
       showToast('Erro ao atualizar dados', 'error')
     }

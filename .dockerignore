@@ -1,0 +1,13 @@
+# Ignorar arquivos desnecessários no build Docker
+node_modules
+.nuxt
+.output
+dist
+.git
+.env.local
+.env.development
+.env.test
+.DS_Store
+*.log
+coverage
+.nyc_output

@@ -38,7 +38,9 @@ export function createApiClient(baseURL: string) {
   const client = ofetch.create({ 
     baseURL,
     credentials: 'include', // Incluir cookies de sessão automaticamente
-    onResponseError({ response }) {
+    onResponseError({ response, error }) {
+      const { showToast } = useToast()
+      
       // Tratar erros de autenticação/autorização
       if (response.status === 401) {
         // Sessão expirou - redirecionar para login
@@ -60,15 +62,68 @@ export function createApiClient(baseURL: string) {
       } else if (response.status === 403) {
         console.warn('Acesso negado:', response.statusText)
         
-        // Mostrar toast de erro se disponível
+        // Mostrar toast de erro
         if (process.client) {
-          const { showToast } = useToast()
           showToast('Você não tem permissão para realizar esta ação', 'error')
+        }
+      } else if (response.status === 404) {
+        // Recurso não encontrado
+        if (process.client) {
+          showToast('Recurso não encontrado', 'error')
+        }
+      } else if (response.status === 422) {
+        // Erro de validação
+        if (process.client) {
+          const errorMessage = response._data?.message || 'Dados inválidos. Verifique os campos e tente novamente.'
+          showToast(errorMessage, 'error')
+        }
+      } else if (response.status === 500) {
+        // Erro interno do servidor
+        console.error('Erro interno do servidor:', response)
+        if (process.client) {
+          showToast('Erro no servidor. Tente novamente em alguns instantes.', 'error', {
+            duration: 5000
+          })
+        }
+      } else if (response.status === 502 || response.status === 503) {
+        // Serviço indisponível
+        console.error('Serviço indisponível:', response.status)
+        if (process.client) {
+          showToast('Serviço temporariamente indisponível. Tente novamente mais tarde.', 'error', {
+            duration: 6000
+          })
+        }
+      } else if (response.status === 504) {
+        // Timeout do gateway
+        console.error('Timeout da requisição')
+        if (process.client) {
+          showToast('A requisição demorou muito tempo. Verifique sua conexão.', 'error', {
+            duration: 5000
+          })
+        }
+      } else if (response.status >= 400 && response.status < 500) {
+        // Outros erros do cliente
+        const errorMessage = response._data?.message || 'Erro ao processar requisição'
+        if (process.client) {
+          showToast(errorMessage, 'error')
         }
       }
     },
     onRequestError({ error }) {
       console.error('Erro na requisição:', error)
+      
+      // Erro de rede ou timeout
+      if (process.client) {
+        const { showToast } = useToast()
+        
+        if (error.message?.includes('fetch') || error.message?.includes('network')) {
+          showToast('Erro de conexão. Verifique sua internet e tente novamente.', 'error', {
+            duration: 5000
+          })
+        } else {
+          showToast('Erro ao realizar requisição. Tente novamente.', 'error')
+        }
+      }
     }
   })
 

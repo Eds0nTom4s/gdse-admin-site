@@ -13,7 +13,11 @@
       </button>
     </div>
 
-    <div class="bg-white rounded-lg shadow">
+    <!-- Loading skeleton -->
+    <SkeletonLoader v-if="carregando" type="table" :rows="5" />
+
+    <!-- Tabela de notícias -->
+    <div v-else class="bg-white rounded-lg shadow">
       <DataTable
         :headers="['Título', 'Autor', 'Data de Publicação']"
         :keys="['titulo', 'autorNome', 'publicadoEm']"

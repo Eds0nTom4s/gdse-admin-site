@@ -1,13 +1,24 @@
 <template>
   <div class="space-y-6">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Loading skeleton para stats -->
+    <SkeletonLoader v-if="carregando" type="stats" />
+    
+    <!-- Stats cards -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard label="Mensagens" :value="contatosCount" hint="Total de mensagens" />
       <StatCard label="Próximos Jogos" :value="proximosJogosCount" hint="Próximos 7 dias" />
       <StatCard label="Membros da Direção" :value="membrosCount" />
       <StatCard label="Usuários" :value="usuariosCount" />
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- Loading skeleton para charts -->
+    <div v-if="carregando" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <SkeletonLoader type="card" />
+      <SkeletonLoader type="card" />
+    </div>
+
+    <!-- Charts -->
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div class="h-64">
         <ChartCard title="Mensagens por dia (últimos 7)" :chart-data="contatosChartData" :chart-options="chartOptions" />
       </div>
@@ -19,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import StatCard from '@/components/StatCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
 import { useApi } from '@/services/api'
@@ -30,6 +41,7 @@ definePageMeta({
 })
 
 const api = useApi()
+const carregando = ref(true)
 
 // Carregar dados com tratamento de erro adequado
 const { data: contatos, error: contatosError } = await useAsyncData('dashboard:contatos', 
@@ -48,6 +60,8 @@ const { data: jogos, error: jogosError } = await useAsyncData('dashboard:jogos',
   () => api.listJogos().catch(() => [])
 )
 
+// Desativar loading após dados carregarem
+carregando.value = false
 // Garantir que os dados são sempre arrays
 const contatosCount = computed(() => Array.isArray(contatos.value) ? contatos.value.length : 0)
 const proximosJogosCount = computed(() => Array.isArray(proximos.value) ? proximos.value.length : 0)

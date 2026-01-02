@@ -20,7 +20,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'https://api.gdse.ao',
       environment: process.env.NODE_ENV || 'development'
     }
   },
@@ -33,10 +33,11 @@ export default defineNuxtConfig({
     }
   },
   // Configuração para melhor performance
-  ssr: true,
+  ssr: false, // SPA mode para nginx
   nitro: {
-    experimental: {
-      wasm: false
+    preset: 'static',
+    prerender: {
+      routes: ['/']
     }
   },
   // Garantir auto-import de composables
@@ -52,6 +53,8 @@ export default defineNuxtConfig({
   },
   // Configuração de desenvolvimento
   devServer: {
-    port: 3000
+    port: 3000,
+    host: 'localhost',
+    https: false
   }
 });

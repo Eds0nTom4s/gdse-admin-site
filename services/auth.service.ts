@@ -1,7 +1,12 @@
 import type { Usuario, LoginCredentials, AuthErrorResponse } from '~/types/auth.types'
 
 /**
- * Serviço de autenticação
+ *  async checkStatus(): Promise<Usuario | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/auth/status`, {
+        method: 'GET',
+        // credentials: 'include' // 🧪 TESTE: Removido por causa do SSL auto-assinado
+      })ço de autenticação
  * Implementa comunicação com os endpoints do backend Spring Security
  */
 export class AuthService {
@@ -27,7 +32,7 @@ export class AuthService {
     // PASSO 1: Fazer login (retorna apenas success/message)
     const loginResponse = await fetch(`${this.baseUrl}/api/auth/login`, {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'include', // ✅ RESTAURADO - Backend corrigiu CORS completamente
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
@@ -59,7 +64,7 @@ export class AuthService {
     // PASSO 2: Buscar dados do usuário autenticado
     const statusResponse = await fetch(`${this.baseUrl}/api/auth/status`, {
       method: 'GET',
-      credentials: 'include'
+      credentials: 'include' // ✅ RESTAURADO - Backend corrigiu CORS completamente
     })
 
     if (!statusResponse.ok) {
@@ -80,7 +85,7 @@ export class AuthService {
     try {
       await fetch(`${this.baseUrl}/api/auth/logout`, {
         method: 'POST',
-        credentials: 'include' // Inclui cookies de sessão
+        credentials: 'include' // ✅ RESTAURADO - Backend corrigiu CORS completamente
       })
     } catch (error) {
       // Log do erro mas não falha - logout deve sempre funcionar no frontend
@@ -96,7 +101,7 @@ export class AuthService {
     try {
       const response = await fetch(`${this.baseUrl}/api/auth/status`, {
         method: 'GET',
-        credentials: 'include' // Inclui cookies de sessão
+        credentials: 'include' // ✅ RESTAURADO - Backend corrigiu CORS completamente
       })
 
       if (response.ok) {
