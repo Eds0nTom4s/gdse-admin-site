@@ -46,18 +46,15 @@ export function createApiClient(baseURL: string) {
         // Sessão expirou - redirecionar para login
         console.warn('Sessão expirada, redirecionando para login')
         
-        // No cliente, usar navigateTo
+        // No cliente, evitar múltiplos redirects e usar window.location
         if (process.client) {
-          const router = useRouter()
-          const route = useRoute()
-          
-          // Limpar estado de autenticação
-          const { logout } = useAuth()
-          logout()
-          
-          // Redirecionar com query parameter para voltar após login
-          const redirectUrl = route.path !== '/login' ? `?redirect=${encodeURIComponent(route.path)}` : ''
-          router.push(`/login${redirectUrl}`)
+          // Prevenir múltiplos redirecionamentos simultâneos
+          if ((window as any).__isRedirectingToLogin) return
+          (window as any).__isRedirectingToLogin = true
+
+          const path = window.location.pathname
+          const redirectUrl = path !== '/login' ? `?redirect=${encodeURIComponent(path)}` : ''
+          window.location.href = `/login${redirectUrl}`
         }
       } else if (response.status === 403) {
         console.warn('Acesso negado:', response.statusText)
@@ -359,10 +356,57 @@ export function createApiClient(baseURL: string) {
         body: formData
       })
     },
+
+    // Loja Oficial GDSE
+    listStoreCatalogo: () => client('/api/store/catalogo'),
+    getStoreProduto: (id: number | string) => client(`/api/store/catalogo/${id}`),
+    listStoreSeparacao: () => client('/api/store/separacao'),
+    processarStoreSeparacao: (id: number | string) => client(`/api/store/separacao/${id}/processar`, { method: 'PUT' }),
+    entregarStoreSeparacao: (id: number | string) => client(`/api/store/separacao/${id}/entregar`, { method: 'PUT' }),
+
+    // Loja - Gestão de Produtos
+    criarStoreProduto: (payload: any) => client('/api/produtos', { method: 'POST', body: payload }),
+    atualizarStoreProduto: (id: number | string, payload: any) => client(`/api/produtos/${id}`, { method: 'PUT', body: payload }),
+    alterarDisponibilidadeProduto: (id: number | string, disponivel: boolean) => client(`/api/produtos/${id}/disponibilidade?disponivel=${disponivel}`, { method: 'PATCH' }),
+    uploadStoreProdutoImagens: async (id: number | string, file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return client(`/api/produtos/${id}/imagem`, { method: 'POST', body: formData })
+    },
+
+    // Loja - Gestão de Variações (Stock/Cores)
+    listStoreVariacoes: (produtoId: number | string) => client(`/api/produtos/${produtoId}/variacoes`),
+    criarStoreVariacao: (produtoId: number | string, payload: any) => client(`/api/produtos/${produtoId}/variacoes`, { method: 'POST', body: payload }),
+    atualizarStoreVariacao: (produtoId: number | string, variacaoId: number | string, payload: any) => client(`/api/produtos/${produtoId}/variacoes/${variacaoId}`, { method: 'PUT', body: payload }),
+    atualizarStockVariacao: (produtoId: number | string, variacaoId: number | string, stock: number) => client(`/api/produtos/${produtoId}/variacoes/${variacaoId}/stock?stock=${stock}`, { method: 'PATCH' }),
+    desativarStoreVariacao: (produtoId: number | string, variacaoId: number | string) => client(`/api/produtos/${produtoId}/variacoes/${variacaoId}`, { method: 'DELETE' }),
   }
 }
 
 export function useApi() {
   const config = useRuntimeConfig()
-  return createApiClient(config.public.apiBase)
+  const rawBase = (config.public.apiBase as string) || ''
+  const cleaned = rawBase.replace(/\/+$/, '').replace(/\/api$/, '')
+  const rawStoreBase = (config.public.storeApiBase as string) || ''
+  const cleanedStore = rawStoreBase.replace(/\/+$/, '').replace(/\/api$/, '')
+  const api = createApiClient(cleaned || 'https://api.gdse.ao')
+  const storeClient = createApiClient(cleanedStore || 'https://api.loja.gdse.ao')
+
+  return {
+    ...api,
+    listStoreCatalogo: storeClient.listStoreCatalogo,
+    getStoreProduto: storeClient.getStoreProduto,
+    listStoreSeparacao: storeClient.listStoreSeparacao,
+    processarStoreSeparacao: storeClient.processarStoreSeparacao,
+    entregarStoreSeparacao: storeClient.entregarStoreSeparacao,
+    criarStoreProduto: storeClient.criarStoreProduto,
+    atualizarStoreProduto: storeClient.atualizarStoreProduto,
+    alterarDisponibilidadeProduto: storeClient.alterarDisponibilidadeProduto,
+    uploadStoreProdutoImagens: storeClient.uploadStoreProdutoImagens,
+    listStoreVariacoes: storeClient.listStoreVariacoes,
+    criarStoreVariacao: storeClient.criarStoreVariacao,
+    atualizarStoreVariacao: storeClient.atualizarStoreVariacao,
+    atualizarStockVariacao: storeClient.atualizarStockVariacao,
+    desativarStoreVariacao: storeClient.desativarStoreVariacao,
+  }
 }

@@ -56,6 +56,13 @@
         </svg>
         Jogos
       </NuxtLink>
+
+      <NuxtLink to="/loja" class="nav-item" active-class="active" @click="handleNavClick">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 11h14l-1 9H6l-1-9z" />
+        </svg>
+        Loja
+      </NuxtLink>
       
       <NuxtLink to="/jogadores" class="nav-item" active-class="active" @click="handleNavClick">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

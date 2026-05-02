@@ -1,5 +1,6 @@
 {
   "env": {
-    "NUXT_PUBLIC_API_BASE_URL": "https://api.gdse.ao"
+    "NUXT_PUBLIC_API_BASE_URL": "https://api.gdse.ao",
+    "NUXT_PUBLIC_STORE_API_BASE_URL": "https://api.loja.gdse.ao"
   }
 }

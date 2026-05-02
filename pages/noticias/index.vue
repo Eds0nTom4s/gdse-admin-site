@@ -333,6 +333,7 @@ const modalAberto = ref(false)
 const modalVisualizacao = ref(false)
 const modalExclusao = ref(false)
 const editando = ref(false)
+const carregando = ref(false)
 const carregandoAcao = ref(false)
 
 // Estados para dados atuais

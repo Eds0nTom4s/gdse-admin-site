@@ -21,6 +21,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'https://api.gdse.ao',
+      storeApiBase: process.env.NUXT_PUBLIC_STORE_API_BASE_URL || 'https://api.loja.gdse.ao',
       environment: process.env.NODE_ENV || 'development'
     }
   },

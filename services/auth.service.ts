@@ -14,7 +14,9 @@ export class AuthService {
 
   constructor() {
     const config = useRuntimeConfig()
-    this.baseUrl = config.public.apiBase as string || 'http://localhost:8080'
+    const rawBase = (config.public.apiBase as string) || ''
+    const cleaned = rawBase.replace(/\/+$/, '').replace(/\/api$/, '')
+    this.baseUrl = cleaned || 'https://api.gdse.ao'
   }
 
   /**
